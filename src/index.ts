@@ -8,6 +8,8 @@ import { handlePaymentRetry } from './handlers/paymentRetryHandler';
 import { KVService } from './services/kvService';
 import { EmailService } from './services/emailService';
 import { handleError } from './utils/errorHandler';
+import { swaggerSpec } from './swagger/swaggerSpec';
+import yaml from 'js-yaml';
 
 export interface Env {
     CUSTOMERS: KVNamespace;
@@ -45,6 +47,10 @@ export default {
                     return handlePayment(request, kvService, emailService);
                 case 'billing':
                     return handleBilling(request, kvService, emailService);
+                case 'api-docs':
+                    return handleSwaggerUI(request);
+                case 'swagger.yaml':
+                    return handleSwaggerYAML();
                 default:
                     return new Response('Not found', { status: 404 });
             }
@@ -76,3 +82,44 @@ export default {
         }
     }
 };
+
+function handleSwaggerUI(request: Request): Response {
+    const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Subscription Management API Documentation</title>
+        <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.52.0/swagger-ui.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.52.0/swagger-ui-bundle.js"></script>
+    </head>
+    <body>
+        <div id="swagger-ui"></div>
+        <script>
+            window.onload = function() {
+                SwaggerUIBundle({
+                    url: "/swagger.yaml",
+                    dom_id: '#swagger-ui',
+                    presets: [
+                        SwaggerUIBundle.presets.apis,
+                        SwaggerUIBundle.SwaggerUIStandalonePreset
+                    ],
+                    layout: "BaseLayout"
+                });
+            }
+        </script>
+    </body>
+    </html>
+    `;
+
+    return new Response(html, {
+        headers: { 'Content-Type': 'text/html' },
+    });
+}
+
+function handleSwaggerYAML(): Response {
+    const yamlContent = yaml.dump(swaggerSpec);
+    return new Response(yamlContent, {
+        headers: { 'Content-Type': 'application/yaml' },
+    });
+}
