@@ -83,7 +83,7 @@ async function generateInvoices(customers: Customer[], kvService: KVService, ema
       if (plan && isInvoiceDue(customer, plan)) {
         const id = billingDO.idFromName(customer.id);
         const obj = billingDO.get(id);
-        const billingCycleResponse = await obj.fetch(`https://dummy-url/billing-cycle/${customer.id}`);
+        const billingCycleResponse = await obj.fetch(`/billing-cycle/${customer.id}`);
         const billingCycle = await billingCycleResponse.json();
 
         if (isBillingCycle(billingCycle)) {

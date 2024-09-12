@@ -137,7 +137,7 @@ async function handleGetSubscriptionDetails(customerId: string, kvService: KVSer
       throw new AppError('Subscription plan not found', 404);
     }
 
-    const billingCycleResponse = await obj.fetch(`https://dummy-url/billing-cycle/${customerId}`);
+    const billingCycleResponse = await obj.fetch(`/billing-cycle/${customerId}`);
     const billingCycle = await billingCycleResponse.json() as { startDate: string; endDate: string };
 
     const subscriptionDetails = {

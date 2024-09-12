@@ -1,4 +1,4 @@
-// .wrangler/tmp/bundle-t5EvaK/checked-fetch.js
+// .wrangler/tmp/bundle-bpK0gx/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -329,7 +329,7 @@ async function handleGetSubscriptionDetails(customerId, kvService, obj) {
     if (!plan) {
       throw new AppError("Subscription plan not found", 404);
     }
-    const billingCycleResponse = await obj.fetch(`https://dummy-url/billing-cycle/${customerId}`);
+    const billingCycleResponse = await obj.fetch(`/billing-cycle/${customerId}`);
     const billingCycle = await billingCycleResponse.json();
     const subscriptionDetails = {
       customer: {
@@ -575,7 +575,7 @@ async function generateInvoices(customers, kvService, emailService, billingDO) {
       if (plan && isInvoiceDue(customer, plan)) {
         const id = billingDO.idFromName(customer.id);
         const obj = billingDO.get(id);
-        const billingCycleResponse = await obj.fetch(`https://dummy-url/billing-cycle/${customer.id}`);
+        const billingCycleResponse = await obj.fetch(`/billing-cycle/${customer.id}`);
         const billingCycle = await billingCycleResponse.json();
         if (isBillingCycle(billingCycle)) {
           await createInvoice(customer, plan, billingCycle, kvService, emailService);
@@ -1045,32 +1045,9 @@ var drainBody = async (request, env, _ctx, middlewareCtx) => {
 };
 var middleware_ensure_req_body_drained_default = drainBody;
 
-// node_modules/wrangler/templates/middleware/middleware-miniflare3-json-error.ts
-function reduceError(e) {
-  return {
-    name: e?.name,
-    message: e?.message ?? String(e),
-    stack: e?.stack,
-    cause: e?.cause === void 0 ? void 0 : reduceError(e.cause)
-  };
-}
-var jsonError = async (request, env, _ctx, middlewareCtx) => {
-  try {
-    return await middlewareCtx.next(request, env);
-  } catch (e) {
-    const error = reduceError(e);
-    return Response.json(error, {
-      status: 500,
-      headers: { "MF-Experimental-Error-Stack": "true" }
-    });
-  }
-};
-var middleware_miniflare3_json_error_default = jsonError;
-
-// .wrangler/tmp/bundle-t5EvaK/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-bpK0gx/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
-  middleware_ensure_req_body_drained_default,
-  middleware_miniflare3_json_error_default
+  middleware_ensure_req_body_drained_default
 ];
 var middleware_insertion_facade_default = src_default;
 
@@ -1096,7 +1073,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
   ]);
 }
 
-// .wrangler/tmp/bundle-t5EvaK/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-bpK0gx/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
