@@ -3,7 +3,7 @@ import { Customer } from '../models/customer';
 import { SubscriptionPlan } from '../models/subscriptionPlan';
 import { AppError, handleError } from '../utils/errorHandler';
 
-export async function handleCustomer(request: Request, kvService: KVService): Promise<Response> {
+export async function handleCustomer(request: Request, kvService: KVService, billingDO: DurableObjectNamespace): Promise<Response> {
   try {
     const url = new URL(request.url);
     const customerId = url.searchParams.get('id');
@@ -12,9 +12,6 @@ export async function handleCustomer(request: Request, kvService: KVService): Pr
       throw new AppError('Customer ID is required', 400);
     }
 
-    // Update customer session using KV
-    await updateCustomerSession(customerId, kvService);
-
     switch (request.method) {
       case 'GET':
         if (url.searchParams.get('subscription') === 'true') {
@@ -22,6 +19,9 @@ export async function handleCustomer(request: Request, kvService: KVService): Pr
         }
         return handleGetCustomer(customerId, kvService);
       case 'POST':
+        if (url.searchParams.get('activate') === 'true') {
+          return handleActivateSubscription(customerId, request, kvService);
+        }
         return handleCreateOrUpdateCustomer(customerId, request, kvService);
       case 'PUT':
         return handleUpdateCustomerSubscription(customerId, request, kvService);
@@ -117,53 +117,88 @@ async function handleChangePlan(customerId: string, request: Request, kvService:
 }
 
 async function handleGetSubscriptionDetails(customerId: string, kvService: KVService): Promise<Response> {
-  try {
-    const customer = await kvService.getCustomer(customerId);
-    if (!customer) {
-      throw new AppError('Customer not found', 404);
-    }
-
-    if (!customer.subscription_plan_id) {
-      throw new AppError('Customer does not have an active subscription', 400);
-    }
-
-    const plan = await kvService.getSubscriptionPlan(customer.subscription_plan_id);
-    if (!plan) {
-      throw new AppError('Subscription plan not found', 404);
-    }
-
-    const billingCycle = await kvService.getBillingCycle(customerId);
-    if (!billingCycle) {
-      throw new AppError('Billing cycle not found', 404);
-    }
-
-    const subscriptionDetails = {
-      customer: {
-        id: customer.id,
-        name: customer.name,
-        email: customer.email,
-      },
-      subscription: {
-        plan_id: plan.id,
-        plan_name: plan.name,
-        status: customer.subscription_status,
-        billing_cycle: plan.billing_cycle,
-        price: plan.price,
-        current_period_start: billingCycle.startDate,
-        current_period_end: billingCycle.endDate,
-      },
-    };
-
-    return new Response(JSON.stringify(subscriptionDetails), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  } catch (error) {
-    console.error(`Error in handleGetSubscriptionDetails: ${error}`);
-    return new Response(`Error retrieving subscription details: ${(error as Error).message}`, { status: 500 });
+  const customer = await kvService.getCustomer(customerId);
+  if (!customer) {
+    throw new AppError('Customer not found', 404);
   }
+
+  if (customer.subscription_status !== 'active' || !customer.subscription_plan_id) {
+    return new Response('Customer does not have an active subscription', { status: 400 });
+  }
+
+  const plan = await kvService.getSubscriptionPlan(customer.subscription_plan_id);
+  if (!plan) {
+    throw new AppError('Subscription plan not found', 404);
+  }
+
+  const billingCycle = await kvService.getBillingCycle(customerId);
+  if (!billingCycle) {
+    throw new AppError('Billing cycle not found', 404);
+  }
+
+  const subscriptionDetails = {
+    customer: {
+      id: customer.id,
+      name: customer.name,
+      email: customer.email,
+    },
+    subscription: {
+      plan_id: plan.id,
+      plan_name: plan.name,
+      status: customer.subscription_status,
+      billing_cycle: plan.billing_cycle,
+      price: plan.price,
+      current_period_start: billingCycle.startDate,
+      current_period_end: billingCycle.endDate,
+    },
+  };
+
+  return new Response(JSON.stringify(subscriptionDetails), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
 
 async function updateCustomerSession(customerId: string, kvService: KVService): Promise<void> {
   await kvService.updateCustomerSession(customerId);
+}
+
+async function handleActivateSubscription(customerId: string, request: Request, kvService: KVService): Promise<Response> {
+  const customer = await kvService.getCustomer(customerId);
+  if (!customer) {
+    throw new AppError('Customer not found', 404);
+  }
+
+  if (customer.subscription_status === 'active') {
+    return new Response('Subscription is already active', { status: 400 });
+  }
+
+  const { planId } = await request.json() as { planId: string };
+  if (!planId) {
+    throw new AppError('Plan ID is required to activate subscription', 400);
+  }
+
+  const plan = await kvService.getSubscriptionPlan(planId);
+  if (!plan) {
+    throw new AppError('Subscription plan not found', 404);
+  }
+
+  const now = new Date();
+  const endDate = new Date(now);
+  endDate.setMonth(endDate.getMonth() + 1); // Assuming monthly billing cycle
+
+  customer.subscription_plan_id = planId;
+  customer.subscription_status = 'active';
+  customer.subscription_start_date = now.toISOString();
+  customer.subscription_end_date = endDate.toISOString();
+
+  await kvService.setCustomer(customer);
+
+  // Update billing cycle in BillingDO
+//   await billingDO.fetch(`/billing-cycle/${customerId}`, {
+//     method: 'POST',
+//     body: JSON.stringify({ startDate: now.toISOString(), endDate: endDate.toISOString() }),
+//   });
+
+  return new Response('Subscription activated successfully', { status: 200 });
 }
