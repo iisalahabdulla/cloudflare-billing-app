@@ -10,7 +10,7 @@ import { EmailService } from './services/emailService';
 import { BillingDO } from './durable_objects/BillingDO';
 import { handleError } from './utils/errorHandler';
 
-interface Env {
+export interface Env {
   CUSTOMERS: KVNamespace;
   SUBSCRIPTIONS: KVNamespace;
   INVOICES: KVNamespace;
@@ -22,60 +22,58 @@ interface Env {
 
 export { BillingDO };
 
-declare global {
-  interface FetchEvent extends Event {
-    waitUntil(promise: Promise<any>): void;
-    respondWith(response: Response | Promise<Response>): void;
-    env: Env;
-  }
+export default {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    try {
+      const url = new URL(request.url);
+      const kvService = new KVService(env);
+      const emailService = new EmailService(env.SENDGRID_API_KEY, env.FROM_EMAIL);
 
-  interface ScheduledEvent extends Event {
-    waitUntil(promise: Promise<any>): void;
-    readonly cron: string;
-    env: Env;
-  }
-}
+      if (url.pathname.startsWith('/billing-do/')) {
+        return handleBillingDO(request, env);
+      }
 
-addEventListener('fetch', (event: FetchEvent) => {
-  event.respondWith(handleRequest(event.request, event.env));
-});
-
-addEventListener('scheduled', (event: ScheduledEvent) => {
-  event.waitUntil(handleScheduled(event));
-});
-
-async function handleRequest(request: Request, env: Env): Promise<Response> {
-  try {
-    const url = new URL(request.url);
-    const kvService = new KVService(env);
-    const emailService = new EmailService(env.SENDGRID_API_KEY, env.FROM_EMAIL);
-
-    if (url.pathname.startsWith('/billing-do/')) {
-      return handleBillingDO(request, env);
+      switch (url.pathname) {
+        case '/subscription':
+          return handleSubscription(request, kvService);
+        case '/invoice':
+          return handleInvoice(request, kvService, emailService);
+        case '/customer':
+          return handleCustomer(request, kvService, env.BILLING_DO);
+        case '/subscription-plan':
+          return handleSubscriptionPlan(request, kvService);
+        case '/payment':
+          return handlePayment(request, kvService, emailService);
+        case '/billing':
+          return handleBilling(request, kvService, emailService, env.BILLING_DO);
+        case '/payment-retry':
+          return handlePaymentRetry(kvService, emailService);
+        default:
+          return new Response('Not Found', { status: 404 });
+      }
+    } catch (error) {
+      return handleError(error);
     }
+  },
 
-    switch (url.pathname) {
-      case '/subscription':
-        return handleSubscription(request, kvService);
-      case '/invoice':
-        return handleInvoice(request, kvService, emailService);
-      case '/customer':
-        return handleCustomer(request, kvService, env.BILLING_DO);
-      case '/subscription-plan':
-        return handleSubscriptionPlan(request, kvService);
-      case '/payment':
-        return handlePayment(request, kvService, emailService);
-      case '/billing':
-        return handleBilling(request, kvService, emailService, env.BILLING_DO);
-      case '/payment-retry':
-        return handlePaymentRetry(kvService, emailService);
-      default:
-        return new Response('Not Found', { status: 404 });
+  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    try {
+      const kvService = new KVService(env);
+      const emailService = new EmailService(env.SENDGRID_API_KEY, env.FROM_EMAIL);
+
+      switch (event.cron) {
+        case '0 0 * * *': // Daily at midnight UTC
+          await handleBilling(new Request('https://dummy-url/billing', { method: 'GET' }), kvService, emailService, env.BILLING_DO);
+          break;
+        case '0 */4 * * *': // Every 4 hours
+          await handlePaymentRetry(kvService, emailService);
+          break;
+      }
+    } catch (error) {
+      console.error('Scheduled task error:', error);
     }
-  } catch (error) {
-    return handleError(error);
   }
-}
+};
 
 async function handleBillingDO(request: Request, env: Env): Promise<Response> {
   try {
@@ -86,24 +84,5 @@ async function handleBillingDO(request: Request, env: Env): Promise<Response> {
     return obj.fetch(request);
   } catch (error) {
     return handleError(error);
-  }
-}
-
-async function handleScheduled(event: ScheduledEvent): Promise<void> {
-  try {
-    const env = event.env;
-    const kvService = new KVService(env);
-    const emailService = new EmailService(env.SENDGRID_API_KEY, env.FROM_EMAIL);
-
-    switch (event.cron) {
-      case '0 0 * * *': // Daily at midnight UTC
-        await handleBilling(new Request('https://dummy-url/billing', { method: 'GET' }), kvService, emailService, env.BILLING_DO);
-        break;
-      case '0 */4 * * *': // Every 4 hours
-        await handlePaymentRetry(kvService, emailService);
-        break;
-    }
-  } catch (error) {
-    console.error('Scheduled task error:', error);
   }
 }

@@ -1,7 +1,7 @@
 {
   "scripts": {
     "build": "tsc",
-    "dev": "wrangler dev",
+    "dev": "wrangler dev src/index.ts",
     "deploy": "wrangler publish",
     "test": "jest"
   },
