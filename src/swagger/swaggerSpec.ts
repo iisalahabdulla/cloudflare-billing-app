@@ -1,14 +1,42 @@
 export const swaggerSpec = {
   openapi: '3.0.0',
   info: {
-    title: 'Subscription Management API',
+    title: 'Billing System API',
     version: '1.0.0',
-    description: 'API for managing subscriptions, customers, and billing',
+    description: 'API for managing subscriptions, customers, billing, and payments',
   },
   paths: {
     '/customer': {
       get: {
-        summary: 'Get customer details',
+        summary: 'Get Customer Subscription Details',
+        parameters: [
+          {
+            name: 'id',
+            in: 'query',
+            required: true,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'subscription',
+            in: 'query',
+            required: true,
+            schema: { type: 'boolean' },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful response',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Subscription' },
+              },
+            },
+          },
+          '404': { description: 'Customer or subscription not found' },
+        },
+      },
+      post: {
+        summary: 'Create/Update Customer',
         parameters: [
           {
             name: 'id',
@@ -17,25 +45,11 @@ export const swaggerSpec = {
             schema: { type: 'string' },
           },
         ],
-        responses: {
-          '200': {
-            description: 'Successful response',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/Customer' },
-              },
-            },
-          },
-          '404': { description: 'Customer not found' },
-        },
-      },
-      post: {
-        summary: 'Create or update customer',
         requestBody: {
           required: true,
           content: {
             'application/json': {
-              schema: { $ref: '#/components/schemas/Customer' },
+              schema: { $ref: '#/components/schemas/CustomerInput' },
             },
           },
         },
@@ -47,13 +61,19 @@ export const swaggerSpec = {
     },
     '/customer/{id}/subscription': {
       get: {
-        summary: 'Get customer subscription details',
+        summary: 'Get Customer Subscription Details',
         parameters: [
           {
             name: 'id',
             in: 'path',
             required: true,
             schema: { type: 'string' },
+          },
+          {
+            name: 'subscription',
+            in: 'query',
+            required: true,
+            schema: { type: 'boolean' },
           },
         ],
         responses: {
@@ -69,137 +89,46 @@ export const swaggerSpec = {
         },
       },
     },
-    '/subscription': {
-      get: {
-        summary: 'Get subscription details',
-        parameters: [
-          {
-            name: 'customerId',
-            in: 'query',
-            required: true,
-            schema: { type: 'string' },
-          },
-        ],
-        responses: {
-          '200': {
-            description: 'Successful response',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/Subscription' },
-              },
-            },
-          },
-          '404': { description: 'Subscription not found' },
-        },
-      },
-      post: {
-        summary: 'Create subscription',
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: { $ref: '#/components/schemas/Subscription' },
-            },
-          },
-        },
-        responses: {
-          '201': { description: 'Subscription created successfully' },
-          '400': { description: 'Invalid input' },
-        },
-      },
-      put: {
-        summary: 'Update subscription',
-        parameters: [
-          {
-            name: 'id',
-            in: 'query',
-            required: true,
-            schema: { type: 'string' },
-          },
-        ],
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: { $ref: '#/components/schemas/Subscription' },
-            },
-          },
-        },
-        responses: {
-          '200': { description: 'Subscription updated successfully' },
-          '400': { description: 'Invalid input' },
-          '404': { description: 'Subscription not found' },
-        },
-      },
-      delete: {
-        summary: 'Cancel subscription',
-        parameters: [
-          {
-            name: 'id',
-            in: 'query',
-            required: true,
-            schema: { type: 'string' },
-          },
-        ],
-        responses: {
-          '200': { description: 'Subscription cancelled successfully' },
-          '404': { description: 'Subscription not found' },
-        },
-      },
-    },
-    '/invoice': {
-      get: {
-        summary: 'Get invoice details',
-        parameters: [
-          {
-            name: 'id',
-            in: 'query',
-            required: true,
-            schema: { type: 'string' },
-          },
-        ],
-        responses: {
-          '200': {
-            description: 'Successful response',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/Invoice' },
-              },
-            },
-          },
-          '404': { description: 'Invoice not found' },
-        },
-      },
-      post: {
-        summary: 'Generate invoice',
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: { $ref: '#/components/schemas/InvoiceGeneration' },
-            },
-          },
-        },
-        responses: {
-          '201': { 
-            description: 'Invoice generated successfully',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/Invoice' },
-              },
-            },
-          },
-          '400': { description: 'Invalid input' },
-        },
-      },
-    },
     '/subscription-plan': {
       get: {
-        summary: 'Get subscription plan details',
+        summary: 'Get All Subscription Plans',
+        responses: {
+          '200': {
+            description: 'Successful response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: { $ref: '#/components/schemas/SubscriptionPlan' },
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        summary: 'Create Subscription Plan',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/SubscriptionPlan' },
+            },
+          },
+        },
+        responses: {
+          '201': { description: 'Subscription plan created successfully' },
+          '400': { description: 'Invalid input' },
+        },
+      },
+    },
+    '/subscription-plan/{id}': {
+      get: {
+        summary: 'Get Specific Subscription Plan',
         parameters: [
           {
             name: 'id',
-            in: 'query',
+            in: 'path',
             required: true,
             schema: { type: 'string' },
           },
@@ -216,27 +145,12 @@ export const swaggerSpec = {
           '404': { description: 'Subscription plan not found' },
         },
       },
-      post: {
-        summary: 'Create subscription plan',
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: { $ref: '#/components/schemas/SubscriptionPlan' },
-            },
-          },
-        },
-        responses: {
-          '201': { description: 'Subscription plan created successfully' },
-          '400': { description: 'Invalid input' },
-        },
-      },
       put: {
-        summary: 'Update subscription plan',
+        summary: 'Update Subscription Plan',
         parameters: [
           {
             name: 'id',
-            in: 'query',
+            in: 'path',
             required: true,
             schema: { type: 'string' },
           },
@@ -245,7 +159,7 @@ export const swaggerSpec = {
           required: true,
           content: {
             'application/json': {
-              schema: { $ref: '#/components/schemas/SubscriptionPlan' },
+              schema: { $ref: '#/components/schemas/SubscriptionPlanUpdate' },
             },
           },
         },
@@ -256,14 +170,179 @@ export const swaggerSpec = {
         },
       },
     },
-    '/payment': {
+    '/subscription': {
+      get: {
+        summary: 'Get Subscription',
+        parameters: [
+          {
+            name: 'customerId',
+            in: 'query',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful response',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Subscription' },
+              },
+            },
+          },
+          '404': { description: 'Subscription not found' },
+        },
+      },
       post: {
-        summary: 'Process payment',
+        summary: 'Create Subscription',
+        parameters: [
+          {
+            name: 'customerId',
+            in: 'query',
+            required: true,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'planId',
+            in: 'query',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          '201': { description: 'Subscription created successfully' },
+          '400': { description: 'Invalid input' },
+        },
+      },
+      put: {
+        summary: 'Update Subscription',
+        parameters: [
+          {
+            name: 'customerId',
+            in: 'query',
+            required: true,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'planId',
+            in: 'query',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          '200': { description: 'Subscription updated successfully' },
+          '400': { description: 'Invalid input' },
+          '404': { description: 'Subscription not found' },
+        },
+      },
+      delete: {
+        summary: 'Cancel Subscription',
+        parameters: [
+          {
+            name: 'customerId',
+            in: 'query',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          '200': { description: 'Subscription cancelled successfully' },
+          '404': { description: 'Subscription not found' },
+        },
+      },
+    },
+    '/invoice': {
+      get: {
+        summary: 'Get All Invoices',
+        responses: {
+          '200': {
+            description: 'Successful response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: { $ref: '#/components/schemas/Invoice' },
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        summary: 'Create Invoice',
         requestBody: {
           required: true,
           content: {
             'application/json': {
-              schema: { $ref: '#/components/schemas/Payment' },
+              schema: { $ref: '#/components/schemas/InvoiceInput' },
+            },
+          },
+        },
+        responses: {
+          '201': { description: 'Invoice created successfully' },
+          '400': { description: 'Invalid input' },
+        },
+      },
+    },
+    '/invoice/{id}': {
+      get: {
+        summary: 'Get Specific Invoice',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful response',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Invoice' },
+              },
+            },
+          },
+          '404': { description: 'Invoice not found' },
+        },
+      },
+    },
+    '/invoice/customer/{customerId}': {
+      get: {
+        summary: 'Get Customer Invoices',
+        parameters: [
+          {
+            name: 'customerId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: { $ref: '#/components/schemas/Invoice' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/payment': {
+      post: {
+        summary: 'Process Payment',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/PaymentInput' },
             },
           },
         },
@@ -274,8 +353,14 @@ export const swaggerSpec = {
       },
     },
     '/billing': {
+      get: {
+        summary: 'Run Billing Process',
+        responses: {
+          '200': { description: 'Billing process completed successfully' },
+        },
+      },
       post: {
-        summary: 'Generate invoice for a specific customer',
+        summary: 'Generate Invoice',
         parameters: [
           {
             name: 'customerId',
@@ -288,21 +373,6 @@ export const swaggerSpec = {
           '200': { description: 'Invoice generated successfully' },
           '400': { description: 'Invalid input' },
           '404': { description: 'Customer not found' },
-        },
-      },
-      get: {
-        summary: 'Run billing process for all customers or a specific customer',
-        parameters: [
-          {
-            name: 'customerId',
-            in: 'query',
-            required: false,
-            schema: { type: 'string' },
-          },
-        ],
-        responses: {
-          '200': { description: 'Billing process completed successfully' },
-          '400': { description: 'Invalid input' },
         },
       },
     },
@@ -320,7 +390,14 @@ export const swaggerSpec = {
           subscription_start_date: { type: 'string', format: 'date-time', nullable: true },
           subscription_end_date: { type: 'string', format: 'date-time', nullable: true },
         },
-        required: ['id', 'name', 'email'],
+      },
+      CustomerInput: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          email: { type: 'string' },
+        },
+        required: ['name', 'email'],
       },
       Subscription: {
         type: 'object',
@@ -332,7 +409,6 @@ export const swaggerSpec = {
           start_date: { type: 'string', format: 'date-time' },
           end_date: { type: 'string', format: 'date-time', nullable: true },
         },
-        required: ['id', 'customer_id', 'plan_id', 'status', 'start_date'],
       },
       SubscriptionPlan: {
         type: 'object',
@@ -347,6 +423,13 @@ export const swaggerSpec = {
         },
         required: ['id', 'name', 'price', 'billing_cycle', 'status'],
       },
+      SubscriptionPlanUpdate: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          price: { type: 'number' },
+        },
+      },
       Invoice: {
         type: 'object',
         properties: {
@@ -357,9 +440,8 @@ export const swaggerSpec = {
           payment_status: { type: 'string', enum: ['pending', 'paid', 'overdue'] },
           payment_date: { type: 'string', format: 'date-time', nullable: true },
         },
-        required: ['id', 'customer_id', 'amount', 'due_date', 'payment_status'],
       },
-      InvoiceGeneration: {
+      InvoiceInput: {
         type: 'object',
         properties: {
           customer_id: { type: 'string' },
@@ -368,18 +450,15 @@ export const swaggerSpec = {
         },
         required: ['customer_id', 'amount', 'due_date'],
       },
-      Payment: {
+      PaymentInput: {
         type: 'object',
         properties: {
-          id: { type: 'string' },
           invoice_id: { type: 'string' },
           customer_id: { type: 'string' },
           amount: { type: 'number' },
           payment_method: { type: 'string', enum: ['credit_card', 'bank_transfer', 'paypal', 'other'] },
-          payment_date: { type: 'string', format: 'date-time' },
-          status: { type: 'string', enum: ['success', 'failed', 'pending'] },
         },
-        required: ['id', 'invoice_id', 'customer_id', 'amount', 'payment_method', 'payment_date', 'status'],
+        required: ['invoice_id', 'customer_id', 'amount', 'payment_method'],
       },
     },
   },
