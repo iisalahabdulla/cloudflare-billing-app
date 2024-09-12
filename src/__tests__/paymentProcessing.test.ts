@@ -54,6 +54,7 @@ describe('Payment Processing', () => {
 
     mockKVNamespace.get.mockResolvedValueOnce(JSON.stringify(customer));
     mockKVNamespace.get.mockResolvedValueOnce(JSON.stringify(invoice));
+    mockKVNamespace.put.mockResolvedValue(undefined);
 
     const paymentData = {
       invoice_id: invoiceId,

@@ -1,30 +1,17 @@
 export class AppError extends Error {
-  statusCode: number;
-  constructor(message: string, statusCode: number) {
+  status: number;
+
+  constructor(message: string, status: number) {
     super(message);
-    this.statusCode = statusCode;
+    this.status = status;
+    this.name = 'AppError';
   }
 }
 
 export function handleError(error: unknown): Response {
-  console.error(error);
-
   if (error instanceof AppError) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: error.statusCode,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return new Response(error.message, { status: error.status });
   }
-
-  if (error instanceof Error) {
-    return new Response(JSON.stringify({ error: 'Internal Server Error', message: error.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  return new Response(JSON.stringify({ error: 'Unknown Error' }), {
-    status: 500,
-    headers: { 'Content-Type': 'application/json' },
-  });
+  console.error('Unhandled error:', error);
+  return new Response('Internal Server Error', { status: 500 });
 }

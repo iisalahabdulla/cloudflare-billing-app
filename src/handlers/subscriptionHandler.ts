@@ -69,7 +69,7 @@ async function getSubscription(customerId: string, kvService: KVService): Promis
     }
 }
 
-async function createSubscription(customerId: string, planId: string, kvService: KVService): Promise<Response> {
+export async function createSubscription(customerId: string, planId: string, kvService: KVService, testMode: boolean = false) {
     try {
         const customer = await kvService.getCustomer(customerId);
         if (!customer) {
@@ -87,15 +87,28 @@ async function createSubscription(customerId: string, planId: string, kvService:
 
         await kvService.assignSubscriptionPlan(customerId, planId);
 
-        const customerData = await kvService.getCustomer(customerId);
-        if (customerData && customerData.subscription_start_date && customerData.subscription_end_date) {
+        const updatedCustomer = await kvService.getCustomer(customerId);
+        if (updatedCustomer && updatedCustomer.subscription_start_date && updatedCustomer.subscription_end_date) {
             await kvService.setBillingCycle(customerId, {
-                startDate: customerData.subscription_start_date,
-                endDate: customerData.subscription_end_date
+                startDate: updatedCustomer.subscription_start_date,
+                endDate: updatedCustomer.subscription_end_date
             });
+        } else {
+            console.warn('Unable to set billing cycle: missing customer data or dates');
         }
+
+        if (!testMode) {
+            // Perform any non-test mode specific operations here
+            // For example, sending a welcome email
+            // await sendWelcomeEmail(customer.email);
+        }
+
         return new Response('Subscription created successfully', { status: 201 });
     } catch (error) {
+        console.error('Error in createSubscription:', error);
+        if (error instanceof AppError) {
+            return new Response(error.message, { status: error.status });
+        }
         return handleError(error);
     }
 }
