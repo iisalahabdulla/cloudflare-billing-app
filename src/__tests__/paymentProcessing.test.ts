@@ -70,7 +70,7 @@ describe('Payment Processing', () => {
     const response = await handleProcessPayment(request, kvService, emailService);
 
     expect(response.status).toBe(201);
-    const responseBody = await response.json();
+    const responseBody = await response.json() as { id: string; status: string };
     expect(responseBody).toHaveProperty('id');
     expect(responseBody.status).toBe('success');
     expect(mockEmailService.sendPaymentSuccessNotification).toHaveBeenCalled();

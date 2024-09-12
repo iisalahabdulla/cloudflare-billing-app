@@ -34,7 +34,7 @@ async function handleGetPayment(paymentId: string | null, kvService: KVService):
   }
 }
 
-async function handleProcessPayment(request: Request, kvService: KVService, emailService: EmailService): Promise<Response> {
+export async function handleProcessPayment(request: Request, kvService: KVService, emailService: EmailService): Promise<Response> {
   try {
     const paymentData: Omit<Payment, 'id' | 'status'> = await request.json();
     

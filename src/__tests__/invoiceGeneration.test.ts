@@ -68,7 +68,7 @@ describe('Invoice Generation', () => {
     const response = await handleGenerateInvoice(customerId, kvService, emailService, mockBillingDO as unknown as DurableObjectNamespace);
 
     expect(response.status).toBe(201);
-    const responseBody = await response.json();
+    const responseBody = await response.json() as { id: string; customer_id: string; amount: number };
     expect(responseBody).toHaveProperty('id');
     expect(responseBody.customer_id).toBe(customerId);
     expect(responseBody.amount).toBe(plan.price);

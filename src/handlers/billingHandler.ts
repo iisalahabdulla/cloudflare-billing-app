@@ -22,7 +22,7 @@ export async function handleBilling(request: Request, kvService: KVService, emai
   }
 }
 
-async function handleGenerateInvoice(customerId: string, kvService: KVService, emailService: EmailService, billingDO: DurableObjectNamespace): Promise<Response> {
+export async function handleGenerateInvoice(customerId: string, kvService: KVService, emailService: EmailService, billingDO: DurableObjectNamespace): Promise<Response> {
   try {
     const customer = await kvService.getCustomer(customerId);
     if (!customer) {
