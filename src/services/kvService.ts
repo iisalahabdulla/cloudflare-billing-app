@@ -218,4 +218,17 @@ export class KVService {
 
         await this.setCustomer(customer);
     }
+
+    async setBillingCycle(customerId: string, billingCycle: { startDate: string, endDate: string }): Promise<void> {
+        await this.namespaces.CUSTOMERS.put(`billing_cycle:${customerId}`, JSON.stringify(billingCycle));
+    }
+
+    async getBillingCycle(customerId: string): Promise<{ startDate: string, endDate: string } | null> {
+        const data = await this.namespaces.CUSTOMERS.get(`billing_cycle:${customerId}`);
+        return data ? JSON.parse(data) : null;
+    }
+
+    async updateCustomerSession(customerId: string): Promise<void> {
+        await this.namespaces.CUSTOMERS.put(`session:${customerId}`, Date.now().toString());
+    }
 }

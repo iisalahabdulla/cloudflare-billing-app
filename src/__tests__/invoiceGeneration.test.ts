@@ -51,21 +51,16 @@ describe('Invoice Generation', () => {
       features: ['feature1', 'feature2'],
       status: 'active',
     };
+    const billingCycle = {
+      startDate: '2023-01-01T00:00:00Z',
+      endDate: '2023-02-01T00:00:00Z',
+    };
 
     mockKVNamespace.get.mockResolvedValueOnce(JSON.stringify(customer));
     mockKVNamespace.get.mockResolvedValueOnce(JSON.stringify(plan));
+    mockKVNamespace.get.mockResolvedValueOnce(JSON.stringify(billingCycle));
 
-    const mockBillingDO = {
-      get: jest.fn().mockReturnValue({
-        fetch: jest.fn().mockResolvedValue({
-          json: jest.fn().mockResolvedValue({ startDate: '2023-01-01T00:00:00Z', endDate: '2023-02-01T00:00:00Z' }),
-        }),
-      }),
-      idFromName: jest.fn(),
-    };
-
-    const request = new Request('https://dummy-url/billing', { method: 'POST' });
-    const response = await handleGenerateInvoice(customerId, kvService, emailService, mockBillingDO as unknown as DurableObjectNamespace);
+    const response = await handleGenerateInvoice(customerId, kvService, emailService);
 
     expect(response.status).toBe(201);
     const responseBody = await response.json() as { id: string; customer_id: string; amount: number };

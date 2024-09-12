@@ -3,7 +3,7 @@ import { Customer } from '../models/customer';
 import { SubscriptionPlan } from '../models/subscriptionPlan';
 import { AppError, handleError } from '../utils/errorHandler';
 
-export async function handleCustomer(request: Request, kvService: KVService, billingDO: DurableObjectNamespace): Promise<Response> {
+export async function handleCustomer(request: Request, kvService: KVService): Promise<Response> {
   try {
     const url = new URL(request.url);
     const customerId = url.searchParams.get('id');
@@ -12,23 +12,21 @@ export async function handleCustomer(request: Request, kvService: KVService, bil
       throw new AppError('Customer ID is required', 400);
     }
 
-    // Update customer session
-    const id = billingDO.idFromName(customerId);
-    const obj = billingDO.get(id);
-    await obj.fetch(`https://dummy-url/session/${customerId}`, { method: 'POST' });
+    // Update customer session using KV
+    await updateCustomerSession(customerId, kvService);
 
     switch (request.method) {
       case 'GET':
         if (url.searchParams.get('subscription') === 'true') {
-          return handleGetSubscriptionDetails(customerId, kvService, obj);
+          return handleGetSubscriptionDetails(customerId, kvService);
         }
         return handleGetCustomer(customerId, kvService);
       case 'POST':
-        return handleCreateOrUpdateCustomer(customerId, request, kvService, obj);
+        return handleCreateOrUpdateCustomer(customerId, request, kvService);
       case 'PUT':
-        return handleUpdateCustomerSubscription(customerId, request, kvService, obj);
+        return handleUpdateCustomerSubscription(customerId, request, kvService);
       case 'PATCH':
-        return handleChangePlan(customerId, request, kvService, obj);
+        return handleChangePlan(customerId, request, kvService);
       default:
         throw new AppError('Method not allowed', 405);
     }
@@ -47,7 +45,7 @@ async function handleGetCustomer(customerId: string, kvService: KVService): Prom
   });
 }
 
-async function handleCreateOrUpdateCustomer(customerId: string, request: Request, kvService: KVService, obj: DurableObjectStub): Promise<Response> {
+async function handleCreateOrUpdateCustomer(customerId: string, request: Request, kvService: KVService): Promise<Response> {
   try {
     const customerData: Customer = await request.json();
     
@@ -67,14 +65,11 @@ async function handleCreateOrUpdateCustomer(customerId: string, request: Request
 
     await kvService.setCustomer(customerData);
 
-    // Update billing cycle in Durable Object
+    // Update billing cycle in KV
     if (customerData.subscription_start_date && customerData.subscription_end_date) {
-      await obj.fetch(`https://dummy-url/billing-cycle/${customerId}`, {
-        method: 'POST',
-        body: JSON.stringify({
-          startDate: customerData.subscription_start_date,
-          endDate: customerData.subscription_end_date
-        })
+      await kvService.setBillingCycle(customerId, {
+        startDate: customerData.subscription_start_date,
+        endDate: customerData.subscription_end_date
       });
     }
 
@@ -84,7 +79,7 @@ async function handleCreateOrUpdateCustomer(customerId: string, request: Request
   }
 }
 
-async function handleUpdateCustomerSubscription(customerId: string, request: Request, kvService: KVService, obj: DurableObjectStub): Promise<Response> {
+async function handleUpdateCustomerSubscription(customerId: string, request: Request, kvService: KVService): Promise<Response> {
   try {
     const { action, planId, status } = await request.json() as { action: string; planId?: string; status?: string };
 
@@ -106,7 +101,7 @@ async function handleUpdateCustomerSubscription(customerId: string, request: Req
   }
 }
 
-async function handleChangePlan(customerId: string, request: Request, kvService: KVService, obj: DurableObjectStub): Promise<Response> {
+async function handleChangePlan(customerId: string, request: Request, kvService: KVService): Promise<Response> {
   try {
     const { newPlanId } = await request.json() as { newPlanId: string };
 
@@ -121,7 +116,7 @@ async function handleChangePlan(customerId: string, request: Request, kvService:
   }
 }
 
-async function handleGetSubscriptionDetails(customerId: string, kvService: KVService, obj: DurableObjectStub): Promise<Response> {
+async function handleGetSubscriptionDetails(customerId: string, kvService: KVService): Promise<Response> {
   try {
     const customer = await kvService.getCustomer(customerId);
     if (!customer) {
@@ -137,8 +132,10 @@ async function handleGetSubscriptionDetails(customerId: string, kvService: KVSer
       throw new AppError('Subscription plan not found', 404);
     }
 
-    const billingCycleResponse = await obj.fetch(`/billing-cycle/${customerId}`);
-    const billingCycle = await billingCycleResponse.json() as { startDate: string; endDate: string };
+    const billingCycle = await kvService.getBillingCycle(customerId);
+    if (!billingCycle) {
+      throw new AppError('Billing cycle not found', 404);
+    }
 
     const subscriptionDetails = {
       customer: {
@@ -162,6 +159,11 @@ async function handleGetSubscriptionDetails(customerId: string, kvService: KVSer
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
+    console.error(`Error in handleGetSubscriptionDetails: ${error}`);
     return new Response(`Error retrieving subscription details: ${(error as Error).message}`, { status: 500 });
   }
+}
+
+async function updateCustomerSession(customerId: string, kvService: KVService): Promise<void> {
+  await kvService.updateCustomerSession(customerId);
 }

@@ -7,7 +7,6 @@ import { handleBilling } from './handlers/billingHandler';
 import { handlePaymentRetry } from './handlers/paymentRetryHandler';
 import { KVService } from './services/kvService';
 import { EmailService } from './services/emailService';
-import { BillingDO } from './durable_objects/BillingDO';
 import { handleError } from './utils/errorHandler';
 
 export interface Env {
@@ -17,56 +16,38 @@ export interface Env {
     PAYMENTS: KVNamespace;
     SENDGRID_API_KEY: string;
     FROM_EMAIL: string;
-    BILLING_DO: DurableObjectNamespace;
 }
-
-export { BillingDO };
 
 export default {
     async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+        const kvService = new KVService({
+            CUSTOMERS: env.CUSTOMERS,
+            SUBSCRIPTIONS: env.SUBSCRIPTIONS,
+            INVOICES: env.INVOICES,
+            PAYMENTS: env.PAYMENTS,
+        });
+        
+        // Use dummy email service for testing
+        const emailService = new EmailService(env.SENDGRID_API_KEY, env.FROM_EMAIL);
         try {
             const url = new URL(request.url);
-            const kvService = new KVService(env);
-            const emailService = new EmailService(env.SENDGRID_API_KEY, env.FROM_EMAIL);
+            const path = url.pathname.split('/').filter(Boolean);
 
-            if (url.pathname.startsWith('/billing-do/')) {
-                return handleBillingDO(request, env);
-            }
-
-            switch (url.pathname) {
-                case '/':
-                    return new Response(JSON.stringify({
-                        message: 'Welcome to the Billing API',
-                        version: '1.0',
-                        endpoints: [
-                            '/subscription',
-                            '/invoice',
-                            '/customer',
-                            '/subscription-plan',
-                            '/payment',
-                            '/billing',
-                            '/payment-retry'
-                        ]
-                    }), {
-                        status: 200,
-                        headers: { 'Content-Type': 'application/json' }
-                    });
-                case '/subscription':
+            switch (path[0]) {
+                case 'customer':
+                    return handleCustomer(request, kvService);
+                case 'subscription':
                     return handleSubscription(request, kvService);
-                case '/invoice':
+                case 'invoice':
                     return handleInvoice(request, kvService, emailService);
-                case '/customer':
-                    return handleCustomer(request, kvService, env.BILLING_DO);
-                case '/subscription-plan':
+                case 'subscription-plan':
                     return handleSubscriptionPlan(request, kvService);
-                case '/payment':
+                case 'payment':
                     return handlePayment(request, kvService, emailService);
-                case '/billing':
-                    return handleBilling(request, kvService, emailService, env.BILLING_DO);
-                case '/payment-retry':
-                    return handlePaymentRetry(kvService, emailService);
+                case 'billing':
+                    return handleBilling(request, kvService, emailService);
                 default:
-                    return new Response('Not Found', { status: 404 });
+                    return new Response('Not found', { status: 404 });
             }
         } catch (error) {
             return handleError(error);
@@ -75,12 +56,17 @@ export default {
 
     async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
         try {
-            const kvService = new KVService(env);
+            const kvService = new KVService({
+                CUSTOMERS: env.CUSTOMERS,
+                SUBSCRIPTIONS: env.SUBSCRIPTIONS,
+                INVOICES: env.INVOICES,
+                PAYMENTS: env.PAYMENTS,
+            });
             const emailService = new EmailService(env.SENDGRID_API_KEY, env.FROM_EMAIL);
 
             switch (event.cron) {
                 case '0 0 * * *': // Daily at midnight UTC
-                    await handleBilling(new Request('https://dummy-url/billing', { method: 'GET' }), kvService, emailService, env.BILLING_DO);
+                    await handleBilling(new Request('https://dummy-url/billing', { method: 'GET' }), kvService, emailService);
                     break;
                 case '0 */4 * * *': // Every 4 hours
                     await handlePaymentRetry(kvService, emailService);
@@ -91,15 +77,3 @@ export default {
         }
     }
 };
-
-async function handleBillingDO(request: Request, env: Env): Promise<Response> {
-    try {
-        const url = new URL(request.url);
-        const customerId = url.pathname.split('/')[2];
-        const id = env.BILLING_DO.idFromName(customerId);
-        const obj = env.BILLING_DO.get(id);
-        return obj.fetch(request);
-    } catch (error) {
-        return handleError(error);
-    }
-}

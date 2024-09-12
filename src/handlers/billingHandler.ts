@@ -4,7 +4,7 @@ import { Customer } from '../models/customer';
 import { SubscriptionPlan } from '../models/subscriptionPlan';
 import { Invoice } from '../models/invoice';
 
-export async function handleBilling(request: Request, kvService: KVService, emailService: EmailService, billingDO: DurableObjectNamespace): Promise<Response> {
+export async function handleBilling(request: Request, kvService: KVService, emailService: EmailService): Promise<Response> {
   const url = new URL(request.url);
   const customerId = url.searchParams.get('customerId');
 
@@ -13,16 +13,16 @@ export async function handleBilling(request: Request, kvService: KVService, emai
     if (!customerId) {
       return new Response('Customer ID is required for invoice generation', { status: 400 });
     }
-    return handleGenerateInvoice(customerId, kvService, emailService, billingDO);
+    return handleGenerateInvoice(customerId, kvService, emailService);
   } else if (request.method === 'GET') {
     // Run billing process for all customers or a specific customer
-    return handleBillingProcess(customerId, kvService, emailService, billingDO);
+    return handleBillingProcess(customerId, kvService, emailService);
   } else {
     return new Response('Method not allowed', { status: 405 });
   }
 }
 
-export async function handleGenerateInvoice(customerId: string, kvService: KVService, emailService: EmailService, billingDO: DurableObjectNamespace): Promise<Response> {
+export async function handleGenerateInvoice(customerId: string, kvService: KVService, emailService: EmailService): Promise<Response> {
   try {
     const customer = await kvService.getCustomer(customerId);
     if (!customer) {
@@ -38,26 +38,22 @@ export async function handleGenerateInvoice(customerId: string, kvService: KVSer
       return new Response('Subscription plan not found', { status: 404 });
     }
 
-    const id = billingDO.idFromName(customerId);
-    const obj = billingDO.get(id);
-    const billingCycleResponse = await obj.fetch(`https://dummy-url/billing-cycle/${customerId}`);
-    const billingCycle = await billingCycleResponse.json();
-
-    if (isBillingCycle(billingCycle)) {
-      const invoice = await createInvoice(customer, plan, billingCycle, kvService, emailService);
-      return new Response(JSON.stringify(invoice), {
-        status: 201,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    } else {
-      throw new Error('Invalid billing cycle data');
+    const billingCycle = await kvService.getBillingCycle(customerId);
+    if (!billingCycle) {
+      return new Response('Billing cycle not found', { status: 404 });
     }
+
+    const invoice = await createInvoice(customer, plan, billingCycle, kvService, emailService);
+    return new Response(JSON.stringify(invoice), {
+      status: 201,
+      headers: { 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     return new Response(`Error generating invoice: ${(error as Error).message}`, { status: 500 });
   }
 }
 
-async function handleBillingProcess(customerId: string | null, kvService: KVService, emailService: EmailService, billingDO: DurableObjectNamespace): Promise<Response> {
+async function handleBillingProcess(customerId: string | null, kvService: KVService, emailService: EmailService): Promise<Response> {
   try {
     let customers: Customer[];
     if (customerId) {
@@ -67,26 +63,22 @@ async function handleBillingProcess(customerId: string | null, kvService: KVServ
       customers = await kvService.listCustomers();
     }
 
-    const invoicesGenerated = await generateInvoices(customers, kvService, emailService, billingDO);
+    const invoicesGenerated = await generateInvoices(customers, kvService, emailService);
     return new Response(`Billing process completed. Generated ${invoicesGenerated} invoices.`, { status: 200 });
   } catch (error) {
     return new Response(`Error during billing process: ${(error as Error).message}`, { status: 500 });
   }
 }
 
-async function generateInvoices(customers: Customer[], kvService: KVService, emailService: EmailService, billingDO: DurableObjectNamespace): Promise<number> {
+async function generateInvoices(customers: Customer[], kvService: KVService, emailService: EmailService): Promise<number> {
   let invoicesGenerated = 0;
 
   for (const customer of customers) {
     if (customer.subscription_status === 'active' && customer.subscription_plan_id) {
       const plan = await kvService.getSubscriptionPlan(customer.subscription_plan_id);
       if (plan && isInvoiceDue(customer, plan)) {
-        const id = billingDO.idFromName(customer.id);
-        const obj = billingDO.get(id);
-        const billingCycleResponse = await obj.fetch(`/billing-cycle/${customer.id}`);
-        const billingCycle = await billingCycleResponse.json();
-
-        if (isBillingCycle(billingCycle)) {
+        const billingCycle = await kvService.getBillingCycle(customer.id);
+        if (billingCycle) {
           await createInvoice(customer, plan, billingCycle, kvService, emailService);
           invoicesGenerated++;
         } else {
