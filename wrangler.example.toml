@@ -1,0 +1,31 @@
+name = "billing-app"
+main = "src/index.ts"
+account_id = "your_account_id"
+workers_dev = true
+compatibility_date = "2023-05-18"
+
+[build]
+command = "npm run build"
+
+[[kv_namespaces]]
+binding = "CUSTOMERS"
+id = "kv_id"
+
+[[kv_namespaces]]
+binding = "SUBSCRIPTIONS"
+id = "kv_id"
+
+[[kv_namespaces]]
+binding = "INVOICES"
+id = "kv_id"
+
+[[kv_namespaces]]
+binding = "PAYMENTS"
+id = "kv_id"
+
+[vars]
+SENDGRID_API_KEY = "YOUR API KEY"
+FROM_EMAIL = "test@example"
+
+[triggers]
+crons = ["0 0 * * *", "0 */4 * * *"]
