@@ -960,6 +960,23 @@ var src_default = {
         return handleBillingDO(request, env);
       }
       switch (url.pathname) {
+        case "/":
+          return new Response(JSON.stringify({
+            message: "Welcome to the Billing API",
+            version: "1.0",
+            endpoints: [
+              "/subscription",
+              "/invoice",
+              "/customer",
+              "/subscription-plan",
+              "/payment",
+              "/billing",
+              "/payment-retry"
+            ]
+          }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" }
+          });
         case "/subscription":
           return handleSubscription(request, kvService);
         case "/invoice":

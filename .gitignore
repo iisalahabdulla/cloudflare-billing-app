@@ -5,7 +5,7 @@ yarn-error.log
 # Cloudflare Workers
 dist/
 worker/
-
+.wrangler/
 # Environment variables
 .env
 .env.local
