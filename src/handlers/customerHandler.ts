@@ -86,19 +86,23 @@ async function handleCreateOrUpdateCustomer(customerId: string, request: Request
 
 async function handleUpdateCustomerSubscription(customerId: string, request: Request, kvService: KVService, obj: DurableObjectStub): Promise<Response> {
   try {
-    const { action, planId, status } = await request.json();
+    const { action, planId, status } = await request.json() as { action: string; planId?: string; status?: string };
 
     if (action === 'assign_plan' && planId) {
       await kvService.assignSubscriptionPlan(customerId, planId);
       return new Response('Subscription plan assigned successfully', { status: 200 });
     } else if (action === 'update_status' && status) {
-      await kvService.updateSubscriptionStatus(customerId, status);
-      return new Response('Subscription status updated successfully', { status: 200 });
+      if (status === 'active' || status === 'inactive' || status === 'pending' || status === 'cancelled') {
+        await kvService.updateSubscriptionStatus(customerId, status);
+        return new Response('Subscription status updated successfully', { status: 200 });
+      } else {
+        return new Response('Invalid subscription status', { status: 400 });
+      }
     } else {
       return new Response('Invalid action or missing required data', { status: 400 });
     }
   } catch (error) {
-    return new Response(`Error: ${error.message}`, { status: 400 });
+    return new Response(`Error: ${(error as Error).message}`, { status: 400 });
   }
 }
 

@@ -115,11 +115,15 @@ export class KVService {
 
     async changePlan(customerId: string, newPlanId: string): Promise<void> {
         const customer = await this.getCustomer(customerId);
+        if (!customer) {
+            throw new Error('Customer not found');
+        }
+
         const newPlan = await this.getSubscriptionPlan(newPlanId);
         const oldPlan = customer.subscription_plan_id ? await this.getSubscriptionPlan(customer.subscription_plan_id) : null;
 
-        if (!customer || !newPlan) {
-            throw new Error('Customer or new plan not found');
+        if (!newPlan) {
+            throw new Error('New plan not found');
         }
 
         const now = new Date();
@@ -213,17 +217,5 @@ export class KVService {
         }
 
         await this.setCustomer(customer);
-    }
-
-    private calculateSubscriptionEndDate(billingCycle: SubscriptionPlan['billing_cycle']): string {
-        const now = new Date();
-        switch (billingCycle) {
-            case 'monthly':
-                return new Date(now.setMonth(now.getMonth() + 1)).toISOString();
-            case 'quarterly':
-                return new Date(now.setMonth(now.getMonth() + 3)).toISOString();
-            case 'yearly':
-                return new Date(now.setFullYear(now.getFullYear() + 1)).toISOString();
-        }
     }
 }

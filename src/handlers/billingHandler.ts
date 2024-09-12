@@ -43,11 +43,15 @@ async function handleGenerateInvoice(customerId: string, kvService: KVService, e
     const billingCycleResponse = await obj.fetch(`https://dummy-url/billing-cycle/${customerId}`);
     const billingCycle = await billingCycleResponse.json();
 
-    const invoice = await createInvoice(customer, plan, billingCycle, kvService, emailService);
-    return new Response(JSON.stringify(invoice), {
-      status: 201,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    if (isBillingCycle(billingCycle)) {
+      const invoice = await createInvoice(customer, plan, billingCycle, kvService, emailService);
+      return new Response(JSON.stringify(invoice), {
+        status: 201,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } else {
+      throw new Error('Invalid billing cycle data');
+    }
   } catch (error) {
     return new Response(`Error generating invoice: ${(error as Error).message}`, { status: 500 });
   }
@@ -82,8 +86,12 @@ async function generateInvoices(customers: Customer[], kvService: KVService, ema
         const billingCycleResponse = await obj.fetch(`https://dummy-url/billing-cycle/${customer.id}`);
         const billingCycle = await billingCycleResponse.json();
 
-        await createInvoice(customer, plan, billingCycle, kvService, emailService);
-        invoicesGenerated++;
+        if (isBillingCycle(billingCycle)) {
+          await createInvoice(customer, plan, billingCycle, kvService, emailService);
+          invoicesGenerated++;
+        } else {
+          console.error(`Invalid billing cycle data for customer ${customer.id}`);
+        }
       }
     }
   }
@@ -130,4 +138,15 @@ async function createInvoice(customer: Customer, plan: SubscriptionPlan, billing
   await kvService.setCustomer(customer);
 
   return invoice;
+}
+
+function isBillingCycle(obj: unknown): obj is { startDate: string; endDate: string } {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    'startDate' in obj &&
+    'endDate' in obj &&
+    typeof (obj as any).startDate === 'string' &&
+    typeof (obj as any).endDate === 'string'
+  );
 }

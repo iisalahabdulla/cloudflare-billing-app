@@ -41,9 +41,9 @@ export class BillingDO {
 
   private async handleBillingCycle(request: Request, customerId: string) {
     if (request.method === 'POST') {
-      const { startDate, endDate } = await request.json();
-      this.billingCycles.set(customerId, { startDate, endDate });
-      await this.state.storage.put(`billing:${customerId}`, { startDate, endDate });
+      const data = await request.json() as { startDate: string; endDate: string };
+      this.billingCycles.set(customerId, { startDate: data.startDate, endDate: data.endDate });
+      await this.state.storage.put(`billing:${customerId}`, { startDate: data.startDate, endDate: data.endDate });
       return new Response('Billing cycle updated', { status: 200 });
     } else if (request.method === 'GET') {
       const cycle = this.billingCycles.get(customerId) || 

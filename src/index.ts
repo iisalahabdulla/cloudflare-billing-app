@@ -22,8 +22,22 @@ interface Env {
 
 export { BillingDO };
 
+declare global {
+  interface FetchEvent extends Event {
+    waitUntil(promise: Promise<any>): void;
+    respondWith(response: Response | Promise<Response>): void;
+    env: Env;
+  }
+
+  interface ScheduledEvent extends Event {
+    waitUntil(promise: Promise<any>): void;
+    readonly cron: string;
+    env: Env;
+  }
+}
+
 addEventListener('fetch', (event: FetchEvent) => {
-  event.respondWith(handleRequest(event.request, event.env as unknown as Env));
+  event.respondWith(handleRequest(event.request, event.env));
 });
 
 addEventListener('scheduled', (event: ScheduledEvent) => {
@@ -56,7 +70,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       case '/payment-retry':
         return handlePaymentRetry(kvService, emailService);
       default:
-        throw new Error('Not Found');
+        return new Response('Not Found', { status: 404 });
     }
   } catch (error) {
     return handleError(error);
@@ -77,7 +91,7 @@ async function handleBillingDO(request: Request, env: Env): Promise<Response> {
 
 async function handleScheduled(event: ScheduledEvent): Promise<void> {
   try {
-    const env = event.env as unknown as Env;
+    const env = event.env;
     const kvService = new KVService(env);
     const emailService = new EmailService(env.SENDGRID_API_KEY, env.FROM_EMAIL);
 
