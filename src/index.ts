@@ -27,7 +27,6 @@ export default {
             PAYMENTS: env.PAYMENTS,
         });
         
-        // Use dummy email service for testing
         const emailService = new EmailService(env.SENDGRID_API_KEY, env.FROM_EMAIL);
         try {
             const url = new URL(request.url);
