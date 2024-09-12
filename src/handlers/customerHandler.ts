@@ -3,7 +3,7 @@ import { Customer } from '../models/customer';
 import { SubscriptionPlan } from '../models/subscriptionPlan';
 import { AppError, handleError } from '../utils/errorHandler';
 
-export async function handleCustomer(request: Request, kvService: KVService, billingDO: DurableObjectNamespace): Promise<Response> {
+export async function handleCustomer(request: Request, kvService: KVService): Promise<Response> {
   try {
     const url = new URL(request.url);
     const customerId = url.searchParams.get('id');
