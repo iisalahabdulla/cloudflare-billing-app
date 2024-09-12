@@ -1,6 +1,7 @@
 import { KVService } from '../services/kvService';
 import { EmailService } from '../services/emailService';
 import { Payment } from '../models/payment';
+import { handleError } from '../utils/errorHandler';
 
 export async function handlePayment(request: Request, kvService: KVService, emailService: EmailService): Promise<Response> {
   const url = new URL(request.url);
@@ -72,7 +73,7 @@ export async function handleProcessPayment(request: Request, kvService: KVServic
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    return new Response(`Error processing payment: ${(error as Error).message}`, { status: 400 });
+    return handleError(error);
   }
 }
 

@@ -1,5 +1,6 @@
 import { KVService } from '../services/kvService';
 import { SubscriptionPlan } from '../models/subscriptionPlan';
+import { handleError } from '../utils/errorHandler';
 
 export async function handleSubscriptionPlan(request: Request, kvService: KVService): Promise<Response> {
   const url = new URL(request.url);
@@ -53,13 +54,13 @@ async function handleCreateSubscriptionPlan(request: Request, kvService: KVServi
     await kvService.setSubscriptionPlan(planData);
     return new Response('Subscription plan created successfully', { status: 201 });
   } catch (error) {
-    return new Response('Invalid subscription plan data', { status: 400 });
+    return handleError(error);
   }
 }
 
 async function handleUpdateSubscriptionPlan(planId: string | null, request: Request, kvService: KVService): Promise<Response> {
   if (!planId) {
-    return new Response('Subscription plan ID is required', { status: 400 });
+    return handleError(new Error('Subscription plan ID is required'));
   }
 
   try {
@@ -74,7 +75,7 @@ async function handleUpdateSubscriptionPlan(planId: string | null, request: Requ
     await kvService.setSubscriptionPlan(updatedPlan);
     return new Response('Subscription plan updated successfully', { status: 200 });
   } catch (error) {
-    return new Response('Invalid subscription plan data', { status: 400 });
+    return handleError(error);
   }
 }
 

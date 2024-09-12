@@ -3,6 +3,7 @@ import { EmailService } from '../services/emailService';
 import { Customer } from '../models/customer';
 import { SubscriptionPlan } from '../models/subscriptionPlan';
 import { Invoice } from '../models/invoice';
+import { handleError } from '../utils/errorHandler';
 
 export async function handleBilling(request: Request, kvService: KVService, emailService: EmailService): Promise<Response> {
   const url = new URL(request.url);
@@ -49,7 +50,7 @@ export async function handleGenerateInvoice(customerId: string, kvService: KVSer
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    return new Response(`Error generating invoice: ${(error as Error).message}`, { status: 500 });
+    return handleError(error);
   }
 }
 
@@ -66,7 +67,7 @@ async function handleBillingProcess(customerId: string | null, kvService: KVServ
     const invoicesGenerated = await generateInvoices(customers, kvService, emailService);
     return new Response(`Billing process completed. Generated ${invoicesGenerated} invoices.`, { status: 200 });
   } catch (error) {
-    return new Response(`Error during billing process: ${(error as Error).message}`, { status: 500 });
+    return handleError(error);
   }
 }
 
