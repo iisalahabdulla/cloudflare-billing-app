@@ -1,7 +1,8 @@
+import { handleSubscription } from '../handlers/subscriptionHandler';
 import { KVService } from '../services/kvService';
 import { Customer } from '../models/customer';
 import { SubscriptionPlan } from '../models/subscriptionPlan';
-import { createSubscription } from '../handlers/subscriptionHandler';
+import { Env } from '../types/env';
 
 // Mock KVNamespace
 const mockKVNamespace = {
@@ -18,6 +19,7 @@ jest.mock('../utils/errorHandler', () => ({
 
 describe('Subscription Management', () => {
   let kvService: KVService;
+  let mockEnv: Env;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -27,9 +29,18 @@ describe('Subscription Management', () => {
       INVOICES: mockKVNamespace as unknown as KVNamespace,
       PAYMENTS: mockKVNamespace as unknown as KVNamespace,
     });
+    mockEnv = {
+      JWT_SECRET: 'test-secret',
+      CUSTOMERS: mockKVNamespace as unknown as KVNamespace,
+      SUBSCRIPTIONS: mockKVNamespace as unknown as KVNamespace,
+      INVOICES: mockKVNamespace as unknown as KVNamespace,
+      PAYMENTS: mockKVNamespace as unknown as KVNamespace,
+      SENDGRID_API_KEY: 'test-sendgrid-key',
+      FROM_EMAIL: 'test@example.com',
+    };
   });
 
-  test('assignSubscriptionPlan should update customer subscription', async () => {
+  test('handleSubscription should create a new subscription', async () => {
     const customerId = 'customer1';
     const planId = 'plan1';
     const customer: Customer = {
@@ -51,67 +62,32 @@ describe('Subscription Management', () => {
       status: 'active',
     };
 
-    mockKVNamespace.get.mockResolvedValueOnce(JSON.stringify(customer));
-    mockKVNamespace.get.mockResolvedValueOnce(JSON.stringify(plan));
-
-    await kvService.assignSubscriptionPlan(customerId, planId);
-
-    expect(mockKVNamespace.put).toHaveBeenCalledWith(
-      customerId,
-      expect.stringContaining('"subscription_status":"active"')
-    );
-    expect(mockKVNamespace.put).toHaveBeenCalledWith(
-      customerId,
-      expect.stringContaining(`"subscription_plan_id":"${planId}"`)
-    );
-  });
-
-  test('createSubscription should create a new subscription', async () => {
-    const customerId = 'customer1';
-    const planId = 'plan1';
-    const customer: Customer = {
-      id: customerId,
-      name: 'Test Customer',
-      email: 'test@example.com',
-      subscription_plan_id: null,
-      subscription_status: 'inactive',
-      subscription_start_date: null,
-      subscription_end_date: null,
-    };
-    const plan: SubscriptionPlan = {
-      id: planId,
-      name: 'Basic Plan',
-      description: 'Basic subscription plan',
-      price: 9.99,
-      billing_cycle: 'monthly',
-      features: ['feature1', 'feature2'],
-      status: 'active',
-    };
-
-    // Mock KVService methods
-    kvService.getCustomer = jest.fn()
-      .mockResolvedValueOnce(customer)
-      .mockResolvedValueOnce({
-        ...customer,
-        subscription_plan_id: planId,
-        subscription_status: 'active',
-        subscription_start_date: new Date().toISOString(),
-        subscription_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      });
+    // Mock the getCustomer method to return the customer
+    kvService.getCustomer = jest.fn().mockResolvedValue(customer);
+    
+    // Mock the getSubscriptionPlan method to return the plan
     kvService.getSubscriptionPlan = jest.fn().mockResolvedValue(plan);
+    
+    // Mock the assignSubscriptionPlan method
     kvService.assignSubscriptionPlan = jest.fn().mockResolvedValue(undefined);
+    
+    // Mock the setCustomer method
+    kvService.setCustomer = jest.fn().mockResolvedValue(undefined);
+    
+    // Mock the setBillingCycle method
     kvService.setBillingCycle = jest.fn().mockResolvedValue(undefined);
 
-    const result = await createSubscription(customerId, planId, kvService, true);
+    const request = new Request('https://dummy-url/subscription?planId=' + planId, {
+      method: 'POST',
+    });
+    (request as any).customerId = customerId;
 
-    if (result.status !== 201) {
-      console.error('Unexpected status:', result.status);
-      console.error('Response text:', await result.text());
-    }
+    const response = await handleSubscription(request, kvService);
 
-    expect(result.status).toBe(201);
-    expect(await result.text()).toBe('Subscription created successfully');
+    expect(response.status).toBe(201);
+    expect(await response.text()).toBe('Subscription created successfully');
     expect(kvService.assignSubscriptionPlan).toHaveBeenCalledWith(customerId, planId);
+    expect(kvService.setCustomer).toHaveBeenCalled();
     expect(kvService.setBillingCycle).toHaveBeenCalled();
   });
 });

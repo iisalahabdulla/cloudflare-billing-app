@@ -3,7 +3,11 @@ import { AppError, handleError } from '../utils/errorHandler';
 
 export async function handleSubscription(request: Request, kvService: KVService): Promise<Response> {
 	try {
-		const customerId = request.customerId; // Get customerId from the request
+		const customerId = request.customerId;
+		if (!customerId) {
+			throw new AppError('Customer ID is required', 400);
+		}
+
 		const url = new URL(request.url);
 		const planId = url.searchParams.get('planId');
 
@@ -81,17 +85,22 @@ export async function createSubscription(customerId: string, planId: string, kvS
 			throw new AppError('Subscription plan not found', 404);
 		}
 
-		await kvService.assignSubscriptionPlan(customerId, planId);
+		const now = new Date();
+		const endDate = new Date(now);
+		endDate.setMonth(endDate.getMonth() + 1); // Assuming monthly billing cycle
 
-		const updatedCustomer = await kvService.getCustomer(customerId);
-		if (updatedCustomer && updatedCustomer.subscription_start_date && updatedCustomer.subscription_end_date) {
-			await kvService.setBillingCycle(customerId, {
-				startDate: updatedCustomer.subscription_start_date,
-				endDate: updatedCustomer.subscription_end_date
-			});
-		} else {
-			console.warn('Unable to set billing cycle: missing customer data or dates');
-		}
+		customer.subscription_plan_id = planId;
+		customer.subscription_status = 'active';
+		customer.subscription_start_date = now.toISOString();
+		customer.subscription_end_date = endDate.toISOString();
+
+		await kvService.assignSubscriptionPlan(customerId, planId);
+		await kvService.setCustomer(customer);
+
+		await kvService.setBillingCycle(customerId, {
+			startDate: customer.subscription_start_date,
+			endDate: customer.subscription_end_date
+		});
 
 		if (!testMode) {
 			// Perform any non-test mode specific operations here

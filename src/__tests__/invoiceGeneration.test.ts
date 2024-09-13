@@ -3,6 +3,7 @@ import { KVService } from '../services/kvService';
 import { EmailService } from '../services/emailService';
 import { Customer } from '../models/customer';
 import { SubscriptionPlan } from '../models/subscriptionPlan';
+import { Env } from '../types/env';
 
 // Mock KVNamespace and EmailService
 const mockKVNamespace = {
@@ -19,6 +20,7 @@ const mockEmailService = {
 describe('Invoice Generation', () => {
   let kvService: KVService;
   let emailService: EmailService;
+  let mockEnv: Env;
 
   beforeEach(() => {
     kvService = new KVService({
@@ -28,6 +30,15 @@ describe('Invoice Generation', () => {
       PAYMENTS: mockKVNamespace as unknown as KVNamespace,
     });
     emailService = mockEmailService as unknown as EmailService;
+    mockEnv = {
+      JWT_SECRET: 'test-secret',
+      CUSTOMERS: mockKVNamespace as unknown as KVNamespace,
+      SUBSCRIPTIONS: mockKVNamespace as unknown as KVNamespace,
+      INVOICES: mockKVNamespace as unknown as KVNamespace,
+      PAYMENTS: mockKVNamespace as unknown as KVNamespace,
+      SENDGRID_API_KEY: 'test-sendgrid-key',
+      FROM_EMAIL: 'test@example.com',
+    };
   });
 
   test('handleGenerateInvoice should create an invoice for an active subscription', async () => {
@@ -60,7 +71,12 @@ describe('Invoice Generation', () => {
     mockKVNamespace.get.mockResolvedValueOnce(JSON.stringify(plan));
     mockKVNamespace.get.mockResolvedValueOnce(JSON.stringify(billingCycle));
 
-    const response = await handleGenerateInvoice(customerId, kvService, emailService);
+    const request = new Request('https://dummy-url/billing', {
+      method: 'POST',
+    });
+    request.customerId = customerId;
+
+    const response = await handleGenerateInvoice(request.customerId, kvService, emailService);
 
     expect(response.status).toBe(201);
     const responseBody = await response.json() as { id: string; customer_id: string; amount: number };
