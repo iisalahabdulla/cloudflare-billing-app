@@ -1,25 +1,21 @@
 import { KVService } from '../services/kvService';
 import { EmailService } from '../services/emailService';
-import { Invoice } from '../models/invoice';
 import { AppError, handleError } from '../utils/errorHandler';
+import { Invoice } from '../models/invoice';
 
 export async function handleInvoice(request: Request, kvService: KVService, emailService: EmailService): Promise<Response> {
   try {
+    const customerId = request.customerId ?? "";
     const url = new URL(request.url);
-    const invoiceId = url.searchParams.get('id');
-    const customerId = url.searchParams.get('customerId');
+    const invoiceId = url.searchParams.get('invoiceId');
 
     switch (request.method) {
       case 'GET':
         if (invoiceId) {
-          return handleGetInvoice(invoiceId, kvService);
-        } else if (customerId) {
-          return handleListCustomerInvoices(customerId, kvService);
+          return await handleGetInvoice(invoiceId, kvService);
         } else {
-          return handleListAllInvoices(kvService);
+          return await handleListCustomerInvoices(customerId, kvService);
         }
-      case 'POST':
-        return handleCreateInvoice(request, kvService, emailService);
       default:
         throw new AppError('Method not allowed', 405);
     }
@@ -27,6 +23,7 @@ export async function handleInvoice(request: Request, kvService: KVService, emai
     return handleError(error);
   }
 }
+
 
 async function handleGetInvoice(invoiceId: string, kvService: KVService): Promise<Response> {
   const invoice = await kvService.getInvoice(invoiceId);
@@ -55,7 +52,7 @@ async function handleListAllInvoices(kvService: KVService): Promise<Response> {
 async function handleCreateInvoice(request: Request, kvService: KVService, emailService: EmailService): Promise<Response> {
   try {
     const invoiceData: Omit<Invoice, 'id'> = await request.json();
-    
+
     if (!invoiceData.customer_id || !invoiceData.amount || !invoiceData.due_date) {
       throw new AppError('Customer ID, amount, and due date are required', 400);
     }

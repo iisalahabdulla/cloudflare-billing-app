@@ -1,18 +1,30 @@
 import { verifyJWT } from '../utils/jwtUtils';
 import { Env } from '../types/env';
 
-export async function authMiddleware(request: Request, env: Env): Promise<{ customerId: string; email: string }> {
+// Add this at the top of the file
+declare global {
+  interface Request {
+    customerId?: string;
+    email?: string;
+  }
+}
+
+export async function authMiddleware(request: Request, env: Env): Promise<Response | void> {
   const authHeader = request.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw new Error('Invalid or missing Authorization header');
+    return new Response('Invalid or missing Authorization header', { status: 401 });
   }
 
   const token = authHeader.split(' ')[1];
   const payload = await verifyJWT(token, env.JWT_SECRET);
 
   if (!payload) {
-    throw new Error('Invalid token');
+    return new Response('Invalid token', { status: 401 });
   }
 
-  return payload;
+  console.log({ payload: JSON.stringify(payload) });
+
+  // Add customerId and email to the request
+  request.customerId = payload.customerId;
+  request.email = payload.email;
 }

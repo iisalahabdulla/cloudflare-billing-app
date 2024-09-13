@@ -1,22 +1,16 @@
 import { KVService } from '../services/kvService';
 import { EmailService } from '../services/emailService';
+import { AppError, handleError } from '../utils/errorHandler';
 import { Customer } from '../models/customer';
 import { SubscriptionPlan } from '../models/subscriptionPlan';
 import { Invoice } from '../models/invoice';
-import { handleError } from '../utils/errorHandler';
 
 export async function handleBilling(request: Request, kvService: KVService, emailService: EmailService): Promise<Response> {
-  const url = new URL(request.url);
-  const customerId = url.searchParams.get('customerId');
+  const customerId = request.customerId ?? "";
 
   if (request.method === 'POST') {
-    // Generate invoice for a specific customer
-    if (!customerId) {
-      return new Response('Customer ID is required for invoice generation', { status: 400 });
-    }
     return handleGenerateInvoice(customerId, kvService, emailService);
   } else if (request.method === 'GET') {
-    // Run billing process for all customers or a specific customer
     return handleBillingProcess(customerId, kvService, emailService);
   } else {
     return new Response('Method not allowed', { status: 405 });

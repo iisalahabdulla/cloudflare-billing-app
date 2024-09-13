@@ -1,21 +1,26 @@
 import { KVService } from '../services/kvService';
 import { EmailService } from '../services/emailService';
+import { AppError, handleError } from '../utils/errorHandler';
 import { Payment } from '../models/payment';
-import { handleError } from '../utils/errorHandler';
 
 export async function handlePayment(request: Request, kvService: KVService, emailService: EmailService): Promise<Response> {
-  const url = new URL(request.url);
-  const paymentId = url.searchParams.get('id');
-
-  switch (request.method) {
-    case 'GET':
-      return handleGetPayment(paymentId, kvService);
-    case 'POST':
-      return handleProcessPayment(request, kvService, emailService);
-    default:
-      return new Response('Method not allowed', { status: 405 });
+  try {
+    const url = new URL(request.url);
+    const invoiceId = url.searchParams.get('invoiceId');
+    switch (request.method) {
+      case 'POST':
+        if (!invoiceId) {
+          throw new AppError('Invoice ID is required for payment', 400);
+        }
+        return await handleProcessPayment(invoiceId, request, kvService, emailService);
+      default:
+        throw new AppError('Method not allowed', 405);
+    }
+  } catch (error) {
+    return handleError(error);
   }
 }
+
 
 async function handleGetPayment(paymentId: string | null, kvService: KVService): Promise<Response> {
   if (paymentId) {
@@ -35,12 +40,13 @@ async function handleGetPayment(paymentId: string | null, kvService: KVService):
   }
 }
 
-export async function handleProcessPayment(request: Request, kvService: KVService, emailService: EmailService): Promise<Response> {
+export async function handleProcessPayment(invoiceId: string, request: Request, kvService: KVService, emailService: EmailService): Promise<Response> {
   try {
     const paymentData: Omit<Payment, 'id' | 'status'> = await request.json();
-    
+    const customerId = request.customerId ?? "";
+    const email = request.email ?? "";
     // Validate payment data
-    if (!paymentData.invoice_id || !paymentData.customer_id || !paymentData.amount || !paymentData.payment_method) {
+    if (!invoiceId || !customerId || !paymentData.amount || !paymentData.payment_method) {
       return new Response('Invalid payment data', { status: 400 });
     }
 
@@ -48,7 +54,7 @@ export async function handleProcessPayment(request: Request, kvService: KVServic
     const paymentStatus = await processPayment(paymentData);
 
     const payment: Payment = {
-      id: `PAY-${Date.now()}-${paymentData.customer_id}`,
+      id: `PAY-${Date.now()}-${customerId}`,
       ...paymentData,
       payment_date: new Date().toISOString(),
       status: paymentStatus,
@@ -56,16 +62,17 @@ export async function handleProcessPayment(request: Request, kvService: KVServic
 
     await kvService.setPayment(payment);
 
-    const customer = await kvService.getCustomer(payment.customer_id);
+    const customer = await kvService.getCustomer(customerId);
+    console.log({ customer });
     if (!customer) {
       throw new Error('Customer not found');
     }
 
     if (paymentStatus === 'success') {
-      await updateInvoiceStatus(paymentData.invoice_id, kvService);
-      await emailService.sendPaymentSuccessNotification(customer.email, payment.invoice_id, payment.amount);
+      await updateInvoiceStatus(invoiceId, kvService);
+      await emailService.sendPaymentSuccessNotification(email, payment.invoice_id, payment.amount);
     } else {
-      await emailService.sendPaymentFailedNotification(customer.email, payment.invoice_id, payment.amount);
+      await emailService.sendPaymentFailedNotification(email, payment.invoice_id, payment.amount);
     }
 
     return new Response(JSON.stringify(payment), {

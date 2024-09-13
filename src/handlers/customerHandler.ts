@@ -5,21 +5,16 @@ import { AppError, handleError } from '../utils/errorHandler';
 
 export async function handleCustomer(request: Request, kvService: KVService): Promise<Response> {
   try {
-    const url = new URL(request.url);
-    const customerId = url.searchParams.get('id');
-
-    if (!customerId) {
-      throw new AppError('Customer ID is required', 400);
-    }
+    const customerId = request.customerId ?? "";
 
     switch (request.method) {
       case 'GET':
-        if (url.searchParams.get('subscription') === 'true') {
+        if (request.url.includes('subscription')) {
           return handleGetSubscriptionDetails(customerId, kvService);
         }
         return handleGetCustomer(customerId, kvService);
       case 'POST':
-        if (url.searchParams.get('activate') === 'true') {
+        if (request.url.includes('activate')) {
           return handleActivateSubscription(customerId, request, kvService);
         }
         return handleCreateOrUpdateCustomer(customerId, request, kvService);

@@ -40,7 +40,10 @@ export default {
                     });
                 default:
                     // Apply auth middleware for all other routes
-                    await authMiddleware(request, env);
+                    const authResult = await authMiddleware(request, env);
+                    if (authResult instanceof Response) {
+                        return authResult; // This is the 401 response
+                    }
                     
                     switch (path) {
                         case 'subscription':
