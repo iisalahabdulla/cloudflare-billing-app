@@ -6,6 +6,81 @@ export const swaggerSpec = {
         description: 'API for managing subscriptions, customers, billing, and payments',
     },
     paths: {
+        '/auth/register': {
+            post: {
+                summary: 'Register a new customer',
+                tags: ['Authentication'],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    name: { type: 'string' },
+                                    email: { type: 'string' },
+                                    password: { type: 'string' },
+                                },
+                                required: ['name', 'email', 'password'],
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    '201': {
+                        description: 'Customer registered successfully',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        token: { type: 'string' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    '400': { description: 'Bad request' },
+                },
+            },
+        },
+        '/auth/login': {
+            post: {
+                summary: 'Login a customer',
+                tags: ['Authentication'],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    email: { type: 'string' },
+                                    password: { type: 'string' },
+                                },
+                                required: ['email', 'password'],
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    '200': {
+                        description: 'Login successful',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        token: { type: 'string' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    '401': { description: 'Unauthorized' },
+                },
+            },
+        },
         '/customer': {
             get: {
                 summary: 'Get Customer Subscription Details',
@@ -396,5 +471,17 @@ export const swaggerSpec = {
                 required: ['invoice_id', 'customer_id', 'amount', 'payment_method'],
             },
         },
+        securitySchemes: {
+            bearerAuth: {
+                type: 'http',
+                scheme: 'bearer',
+                bearerFormat: 'JWT',
+            },
+        },
     },
+    security: [
+        {
+            bearerAuth: [],
+        },
+    ],
 };

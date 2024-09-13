@@ -232,5 +232,14 @@ export class KVService {
         await this.namespaces.CUSTOMERS.put(`session:${customerId}`, Date.now().toString());
     }
 
-
+    async getCustomerByEmail(email: string): Promise<Customer | null> {
+        const list = await this.namespaces.CUSTOMERS.list();
+        for (const key of list.keys) {
+            const customer = await this.getCustomer(key.name);
+            if (customer && customer.email === email) {
+                return customer;
+            }
+        }
+        return null;
+    }
 }
