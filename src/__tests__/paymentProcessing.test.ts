@@ -18,6 +18,12 @@ const mockEmailService = {
   sendPaymentFailedNotification: jest.fn(),
 };
 
+// Mock the processPayment function
+jest.mock('../handlers/paymentHandler', () => ({
+  ...jest.requireActual('../handlers/paymentHandler'),
+  processPayment: jest.fn().mockResolvedValue('success'),
+}));
+
 describe('Payment Processing', () => {
   let kvService: KVService;
   let emailService: EmailService;

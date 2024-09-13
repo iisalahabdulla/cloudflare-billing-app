@@ -3,6 +3,7 @@ import { KVService } from '../services/kvService';
 import { Customer } from '../models/customer';
 import { SubscriptionPlan } from '../models/subscriptionPlan';
 import { Env } from '../types/env';
+import { AppError } from '../utils/errorHandler';
 
 // Mock KVNamespace
 const mockKVNamespace = {
@@ -15,6 +16,7 @@ const mockKVNamespace = {
 // Mock handleError function
 jest.mock('../utils/errorHandler', () => ({
   handleError: jest.fn((error) => new Response(error.message, { status: error.status || 500 })),
+  AppError: jest.requireActual('../utils/errorHandler').AppError,
 }));
 
 describe('Subscription Management', () => {
@@ -62,7 +64,7 @@ describe('Subscription Management', () => {
       status: 'active',
     };
 
-    // Mock the getCustomer method to return the customer
+    // Mock the getCustomer method to return the customer without an active subscription
     kvService.getCustomer = jest.fn().mockResolvedValue(customer);
     
     // Mock the getSubscriptionPlan method to return the plan
@@ -89,5 +91,193 @@ describe('Subscription Management', () => {
     expect(kvService.assignSubscriptionPlan).toHaveBeenCalledWith(customerId, planId);
     expect(kvService.setCustomer).toHaveBeenCalled();
     expect(kvService.setBillingCycle).toHaveBeenCalled();
+  });
+
+  test('handleSubscription should get an existing subscription', async () => {
+    const customerId = 'customer1';
+    const planId = 'plan1';
+    const customer: Customer = {
+      id: customerId,
+      name: 'Test Customer',
+      email: 'test@example.com',
+      subscription_plan_id: planId,
+      subscription_status: 'active',
+      subscription_start_date: '2023-01-01T00:00:00Z',
+      subscription_end_date: '2023-02-01T00:00:00Z',
+    };
+    const plan: SubscriptionPlan = {
+      id: planId,
+      name: 'Basic Plan',
+      description: 'Basic subscription plan',
+      price: 9.99,
+      billing_cycle: 'monthly',
+      features: ['feature1', 'feature2'],
+      status: 'active',
+    };
+
+    kvService.getCustomer = jest.fn().mockResolvedValue(customer);
+    kvService.getSubscriptionPlan = jest.fn().mockResolvedValue(plan);
+
+    const request = new Request('https://dummy-url/subscription', {
+      method: 'GET',
+    });
+    (request as any).customerId = customerId;
+
+    const response = await handleSubscription(request, kvService);
+
+    expect(response.status).toBe(200);
+    const responseBody = await response.json();
+    expect(responseBody).toEqual({
+      customerId: customerId,
+      planId: planId,
+      planName: plan.name,
+      status: 'active',
+      startDate: '2023-01-01T00:00:00Z',
+      endDate: '2023-02-01T00:00:00Z',
+    });
+  });
+
+  test('handleSubscription should update an existing subscription', async () => {
+    const customerId = 'customer1';
+    const oldPlanId = 'plan1';
+    const newPlanId = 'plan2';
+    const customer: Customer = {
+      id: customerId,
+      name: 'Test Customer',
+      email: 'test@example.com',
+      subscription_plan_id: oldPlanId,
+      subscription_status: 'active',
+      subscription_start_date: '2023-01-01T00:00:00Z',
+      subscription_end_date: '2023-02-01T00:00:00Z',
+    };
+    const newPlan: SubscriptionPlan = {
+      id: newPlanId,
+      name: 'Premium Plan',
+      description: 'Premium subscription plan',
+      price: 19.99,
+      billing_cycle: 'monthly',
+      features: ['feature1', 'feature2', 'feature3'],
+      status: 'active',
+    };
+
+    kvService.getCustomer = jest.fn().mockResolvedValue(customer);
+    kvService.getSubscriptionPlan = jest.fn().mockResolvedValue(newPlan);
+    kvService.changePlan = jest.fn().mockResolvedValue(undefined);
+
+    const request = new Request('https://dummy-url/subscription?planId=' + newPlanId, {
+      method: 'PUT',
+    });
+    (request as any).customerId = customerId;
+
+    const response = await handleSubscription(request, kvService);
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe('Subscription updated successfully');
+    expect(kvService.changePlan).toHaveBeenCalledWith(customerId, newPlanId);
+  });
+
+  test('handleSubscription should cancel an existing subscription', async () => {
+    const customerId = 'customer1';
+    const planId = 'plan1';
+    const customer: Customer = {
+      id: customerId,
+      name: 'Test Customer',
+      email: 'test@example.com',
+      subscription_plan_id: planId,
+      subscription_status: 'active',
+      subscription_start_date: '2023-01-01T00:00:00Z',
+      subscription_end_date: '2023-02-01T00:00:00Z',
+    };
+
+    kvService.getCustomer = jest.fn().mockResolvedValue(customer);
+    kvService.updateSubscriptionStatus = jest.fn().mockResolvedValue(undefined);
+
+    const request = new Request('https://dummy-url/subscription', {
+      method: 'DELETE',
+    });
+    (request as any).customerId = customerId;
+
+    const response = await handleSubscription(request, kvService);
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe('Subscription cancelled successfully');
+    expect(kvService.updateSubscriptionStatus).toHaveBeenCalledWith(customerId, 'cancelled');
+  });
+
+  test('handleSubscription should throw an error when creating a subscription for a customer with an existing subscription', async () => {
+    const customerId = 'customer1';
+    const planId = 'plan1';
+    const customer: Customer = {
+      id: customerId,
+      name: 'Test Customer',
+      email: 'test@example.com',
+      subscription_plan_id: planId,
+      subscription_status: 'active',
+      subscription_start_date: '2023-01-01T00:00:00Z',
+      subscription_end_date: '2023-02-01T00:00:00Z',
+    };
+
+    kvService.getCustomer = jest.fn().mockResolvedValue(customer);
+
+    const request = new Request('https://dummy-url/subscription?planId=' + planId, {
+      method: 'POST',
+    });
+    (request as any).customerId = customerId;
+
+    const response = await handleSubscription(request, kvService);
+
+    expect(response.status).toBe(400);
+    expect(await response.text()).toBe('Customer already has an active subscription');
+  });
+
+  test('handleSubscription should throw an error when updating a subscription for a customer without an active subscription', async () => {
+    const customerId = 'customer1';
+    const planId = 'plan1';
+    const customer: Customer = {
+      id: customerId,
+      name: 'Test Customer',
+      email: 'test@example.com',
+      subscription_plan_id: null,
+      subscription_status: 'inactive',
+      subscription_start_date: null,
+      subscription_end_date: null,
+    };
+
+    kvService.getCustomer = jest.fn().mockResolvedValue(customer);
+
+    const request = new Request('https://dummy-url/subscription?planId=' + planId, {
+      method: 'PUT',
+    });
+    (request as any).customerId = customerId;
+
+    const response = await handleSubscription(request, kvService);
+
+    expect(response.status).toBe(400);
+    expect(await response.text()).toBe('Customer does not have an active subscription');
+  });
+
+  test('handleSubscription should throw an error when cancelling a subscription for a customer without an active subscription', async () => {
+    const customerId = 'customer1';
+    const customer: Customer = {
+      id: customerId,
+      name: 'Test Customer',
+      email: 'test@example.com',
+      subscription_plan_id: null,
+      subscription_status: 'inactive',
+      subscription_start_date: null,
+      subscription_end_date: null,
+    };
+
+    kvService.getCustomer = jest.fn().mockResolvedValue(customer);
+
+    const request = new Request('https://dummy-url/subscription', {
+      method: 'DELETE',
+    });
+    (request as any).customerId = customerId;
+
+    const response = await handleSubscription(request, kvService);
+
+    expect(response.status).toBe(400);
+    expect(await response.text()).toBe('Customer does not have an active subscription');
   });
 });
