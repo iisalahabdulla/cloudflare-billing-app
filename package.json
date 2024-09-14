@@ -2,7 +2,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "wrangler dev src/index.ts",
-    "deploy": "wrangler publish",
+    "deploy": "npm run build && wrangler publish",
     "test": "jest"
   },
   "name": "salla-interview-2",
@@ -14,14 +14,18 @@
   "description": "",
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240909.0",
-    "@types/jest": "^27.0.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jest": "^29.5.0",
     "@types/js-yaml": "^4.0.9",
-    "jest": "^27.0.0",
-    "ts-jest": "^27.0.0",
+    "@types/jsonwebtoken": "^9.0.6",
+    "jest": "^29.5.0",
+    "ts-jest": "^29.1.0",
     "typescript": "^5.6.2",
     "wrangler": "^3.76.0"
   },
   "dependencies": {
-    "js-yaml": "^4.1.0"
+    "bcryptjs": "^2.4.3",
+    "js-yaml": "^4.1.0",
+    "jsonwebtoken": "^9.0.2"
   }
 }

@@ -26,6 +26,7 @@ id = "kv_id"
 [vars]
 SENDGRID_API_KEY = "YOUR API KEY"
 FROM_EMAIL = "test@example"
+JWT_SECRET = "your jwt secret"
 
 [triggers]
 crons = ["0 0 * * *", "0 */4 * * *"]

@@ -1,93 +1,98 @@
 import { KVService } from '../services/kvService';
 import { EmailService } from '../services/emailService';
 import { Payment } from '../models/payment';
-import { handleError } from '../utils/errorHandler';
 
 export async function handlePayment(request: Request, kvService: KVService, emailService: EmailService): Promise<Response> {
-  const url = new URL(request.url);
-  const paymentId = url.searchParams.get('id');
+	try {
+		const url = new URL(request.url);
+		const path = url.pathname.split('/').pop();
 
-  switch (request.method) {
-    case 'GET':
-      return handleGetPayment(paymentId, kvService);
-    case 'POST':
-      return handleProcessPayment(request, kvService, emailService);
-    default:
-      return new Response('Method not allowed', { status: 405 });
-  }
+		switch (request.method) {
+			case 'GET':
+				if (path === 'all') {
+					return handleListAllPayments(request, kvService);
+				} else {
+					return handleGetPayment(request, kvService);
+				}
+			case 'POST':
+				return handleCreatePayment(request, kvService, emailService);
+			default:
+				return new Response('Method not allowed', { status: 405 });
+		}
+	} catch (error) {
+		console.error('Error in handlePayment:', error);
+		return new Response('Internal Server Error', { status: 500 });
+	}
 }
 
-async function handleGetPayment(paymentId: string | null, kvService: KVService): Promise<Response> {
-  if (paymentId) {
-    const payment = await kvService.getPayment(paymentId);
-    if (payment) {
-      return new Response(JSON.stringify(payment), {
-        headers: { 'Content-Type': 'application/json' },
-      });
-    } else {
-      return new Response('Payment not found', { status: 404 });
-    }
-  } else {
-    const payments = await kvService.listPayments();
-    return new Response(JSON.stringify(payments), {
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
+async function handleGetPayment(request: Request, kvService: KVService): Promise<Response> {
+	const url = new URL(request.url);
+	const paymentId = url.searchParams.get('paymentId');
+	if (!paymentId) {
+		return new Response('Payment ID is required', { status: 400 });
+	}
+
+	const payment = await kvService.getPayment(paymentId);
+	if (!payment) {
+		return new Response('Payment not found', { status: 404 });
+	}
+
+	return new Response(JSON.stringify(payment), {
+		headers: { 'Content-Type': 'application/json' },
+	});
 }
 
-export async function handleProcessPayment(request: Request, kvService: KVService, emailService: EmailService): Promise<Response> {
-  try {
-    const paymentData: Omit<Payment, 'id' | 'status'> = await request.json();
-    
-    // Validate payment data
-    if (!paymentData.invoice_id || !paymentData.customer_id || !paymentData.amount || !paymentData.payment_method) {
-      return new Response('Invalid payment data', { status: 400 });
-    }
+async function handleListAllPayments(request: Request, kvService: KVService): Promise<Response> {
+	const url = new URL(request.url);
+	const limit = parseInt(url.searchParams.get('limit') || '10');
+	const cursor = url.searchParams.get('cursor') || undefined;
+	const status = url.searchParams.get('status') as Payment['status'] | undefined;
 
-    // Process the payment (in a real-world scenario, you'd integrate with a payment gateway here)
-    const paymentStatus = await processPayment(paymentData);
+	const { payments, cursor: nextCursor } = await kvService.listPayments(status, limit, cursor);
 
-    const payment: Payment = {
-      id: `PAY-${Date.now()}-${paymentData.customer_id}`,
-      ...paymentData,
-      payment_date: new Date().toISOString(),
-      status: paymentStatus,
-    };
-
-    await kvService.setPayment(payment);
-
-    const customer = await kvService.getCustomer(payment.customer_id);
-    if (!customer) {
-      throw new Error('Customer not found');
-    }
-
-    if (paymentStatus === 'success') {
-      await updateInvoiceStatus(paymentData.invoice_id, kvService);
-      await emailService.sendPaymentSuccessNotification(customer.email, payment.invoice_id, payment.amount);
-    } else {
-      await emailService.sendPaymentFailedNotification(customer.email, payment.invoice_id, payment.amount);
-    }
-
-    return new Response(JSON.stringify(payment), {
-      status: 201,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  } catch (error) {
-    return handleError(error);
-  }
+	return new Response(JSON.stringify({ payments, nextCursor }), {
+		headers: { 'Content-Type': 'application/json' },
+	});
 }
 
-async function processPayment(paymentData: Omit<Payment, 'id' | 'status'>): Promise<Payment['status']> {
-  // Simulate payment processing
-  // In a real-world scenario, you'd integrate with a payment gateway here
-  return Math.random() < 0.9 ? 'success' : 'failed';
-}
+async function handleCreatePayment(request: Request, kvService: KVService, emailService: EmailService): Promise<Response> {
+	const paymentData: Omit<Payment, 'id'> = await request.json();
 
-async function updateInvoiceStatus(invoiceId: string, kvService: KVService): Promise<void> {
-  const invoice = await kvService.getInvoice(invoiceId);
-  if (invoice) {
-    invoice.payment_status = 'paid';
-    invoice.payment_date = new Date().toISOString();
-    await kvService.setInvoice(invoice);
-  }
+	if (!paymentData.invoice_id || !paymentData.amount || !paymentData.payment_method) {
+		return new Response('Invoice ID, amount, and payment method are required', { status: 400 });
+	}
+
+	const invoice = await kvService.getInvoice(paymentData.invoice_id);
+	if (!invoice) {
+		return new Response('Invoice not found', { status: 404 });
+	}
+
+	if (invoice.payment_status === 'paid') {
+		return new Response('Invoice has already been paid', { status: 400 });
+	}
+
+	const payment: Payment = {
+		id: `PAY-${Date.now()}`,
+		...paymentData,
+		status: 'success', // Change 'successful' to 'success'
+		payment_date: new Date().toISOString(), // Change 'created_at' to 'payment_date'
+	};
+
+	await kvService.setPayment(payment);
+
+	// Update invoice status
+	invoice.payment_status = 'paid';
+	invoice.payment_date = payment.payment_date;
+	await kvService.setInvoice(invoice);
+
+	// Send payment confirmation email
+	const customer = await kvService.getCustomer(invoice.customer_id);
+	if (customer) {
+		await emailService.sendPaymentSuccessNotification(customer.email, payment.id, payment.amount);
+	}
+
+	return new Response(JSON.stringify(payment), {
+		status: 201,
+		headers: { 'Content-Type': 'application/json' },
+	});
 }

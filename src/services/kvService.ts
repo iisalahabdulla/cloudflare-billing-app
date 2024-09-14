@@ -61,22 +61,24 @@ export class KVService {
         await this.namespaces.SUBSCRIPTIONS.put(plan.id, JSON.stringify(plan));
     }
 
-    async listSubscriptionPlans(): Promise<SubscriptionPlan[]> {
-        const list = await this.namespaces.SUBSCRIPTIONS.list();
+    async listSubscriptionPlans(limit: number = 10, cursor?: string): Promise<{ plans: SubscriptionPlan[], cursor: string | undefined }> {
+        const list = await this.namespaces.SUBSCRIPTIONS.list({ limit, cursor });
         const plans: SubscriptionPlan[] = [];
         for (const key of list.keys) {
             const plan = await this.getSubscriptionPlan(key.name);
-            if (plan) plans.push(plan);
+            if (plan) {
+                plans.push(plan);
+            }
         }
-        return plans;
+        return { plans, cursor: list.list_complete ? undefined : list.cursor };
     }
 
     async deleteSubscriptionPlan(id: string): Promise<void> {
         await this.namespaces.SUBSCRIPTIONS.delete(id);
     }
 
-    async listInvoices(customerId?: string): Promise<Invoice[]> {
-        const list = await this.namespaces.INVOICES.list();
+    async listInvoices(customerId?: string, limit: number = 10, cursor?: string): Promise<{ invoices: Invoice[], cursor: string | undefined }> {
+        const list = await this.namespaces.INVOICES.list({ limit, cursor });
         const invoices: Invoice[] = [];
         for (const key of list.keys) {
             const invoice = await this.getInvoice(key.name);
@@ -84,17 +86,33 @@ export class KVService {
                 invoices.push(invoice);
             }
         }
-        return invoices;
+        return { invoices, cursor: list.list_complete ? undefined : list.cursor };
     }
 
-    async listCustomers(): Promise<Customer[]> {
-        const list = await this.namespaces.CUSTOMERS.list();
+    async listAllInvoices(limit: number = 10, cursor?: string): Promise<{ invoices: Invoice[], cursor: string | undefined }> {
+        const list = await this.namespaces.INVOICES.list({
+            limit: limit,
+            cursor: cursor
+        });
+        console.log({ list });
+        const invoices: Invoice[] = [];
+        for (const key of list.keys) {
+            const invoice = await this.getInvoice(key.name);
+            if (invoice) invoices.push(invoice);
+        }
+        return { invoices, cursor: list.list_complete ? undefined : list.cursor };
+    }
+
+    async listCustomers(limit: number = 10, cursor?: string): Promise<{ customers: Customer[], cursor: string | undefined }> {
+        const list = await this.namespaces.CUSTOMERS.list({ limit, cursor });
         const customers: Customer[] = [];
         for (const key of list.keys) {
             const customer = await this.getCustomer(key.name);
-            if (customer) customers.push(customer);
+            if (customer) {
+                customers.push(customer);
+            }
         }
-        return customers;
+        return { customers, cursor: list.list_complete ? undefined : list.cursor };
     }
 
     calculateSubscriptionEndDate(billingCycle: SubscriptionPlan['billing_cycle'], startDate: string = new Date().toISOString()): string {
@@ -173,8 +191,8 @@ export class KVService {
         }
     }
 
-    async listPayments(status?: Payment['status']): Promise<Payment[]> {
-        const list = await this.namespaces.PAYMENTS.list();
+    async listPayments(status?: Payment['status'], limit: number = 10, cursor?: string): Promise<{ payments: Payment[], cursor: string | undefined }> {
+        const list = await this.namespaces.PAYMENTS.list({ limit, cursor });
         const payments: Payment[] = [];
         for (const key of list.keys) {
             const payment = await this.getPayment(key.name);
@@ -182,7 +200,7 @@ export class KVService {
                 payments.push(payment);
             }
         }
-        return payments;
+        return { payments, cursor: list.list_complete ? undefined : list.cursor };
     }
 
     async assignSubscriptionPlan(customerId: string, planId: string): Promise<void> {
@@ -232,5 +250,14 @@ export class KVService {
         await this.namespaces.CUSTOMERS.put(`session:${customerId}`, Date.now().toString());
     }
 
-
+    async getCustomerByEmail(email: string): Promise<Customer | null> {
+        const list = await this.namespaces.CUSTOMERS.list();
+        for (const key of list.keys) {
+            const customer = await this.getCustomer(key.name);
+            if (customer && customer.email === email) {
+                return customer;
+            }
+        }
+        return null;
+    }
 }

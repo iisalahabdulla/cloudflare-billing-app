@@ -3,20 +3,13 @@ import { EmailService } from '../services/emailService';
 import { Customer } from '../models/customer';
 import { SubscriptionPlan } from '../models/subscriptionPlan';
 import { Invoice } from '../models/invoice';
-import { handleError } from '../utils/errorHandler';
 
 export async function handleBilling(request: Request, kvService: KVService, emailService: EmailService): Promise<Response> {
-  const url = new URL(request.url);
-  const customerId = url.searchParams.get('customerId');
+  const customerId = request.customerId ?? "";
 
   if (request.method === 'POST') {
-    // Generate invoice for a specific customer
-    if (!customerId) {
-      return new Response('Customer ID is required for invoice generation', { status: 400 });
-    }
     return handleGenerateInvoice(customerId, kvService, emailService);
   } else if (request.method === 'GET') {
-    // Run billing process for all customers or a specific customer
     return handleBillingProcess(customerId, kvService, emailService);
   } else {
     return new Response('Method not allowed', { status: 405 });
@@ -39,9 +32,9 @@ export async function handleGenerateInvoice(customerId: string, kvService: KVSer
       return new Response('Subscription plan not found', { status: 404 });
     }
 
-    const billingCycle = await kvService.getBillingCycle(customerId);
+    const billingCycle = await kvService.getBillingCycle(customer.id);
     if (!billingCycle) {
-      return new Response('Billing cycle not found', { status: 404 });
+      return new Response('Billing cycle data not found', { status: 400 });
     }
 
     const invoice = await createInvoice(customer, plan, billingCycle, kvService, emailService);
@@ -50,7 +43,8 @@ export async function handleGenerateInvoice(customerId: string, kvService: KVSer
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    return handleError(error);
+    console.error('Error in handleGenerateInvoice:', error);
+    return new Response('Internal Server Error', { status: 500 });
   }
 }
 
@@ -61,13 +55,15 @@ async function handleBillingProcess(customerId: string | null, kvService: KVServ
       const customer = await kvService.getCustomer(customerId);
       customers = customer ? [customer] : [];
     } else {
-      customers = await kvService.listCustomers();
+      const { customers: fetchedCustomers } = await kvService.listCustomers();
+      customers = fetchedCustomers;
     }
 
     const invoicesGenerated = await generateInvoices(customers, kvService, emailService);
     return new Response(`Billing process completed. Generated ${invoicesGenerated} invoices.`, { status: 200 });
   } catch (error) {
-    return handleError(error);
+    console.error('Error in handleBillingProcess:', error);
+    return new Response('Internal Server Error', { status: 500 });
   }
 }
 

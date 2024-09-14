@@ -1,25 +1,21 @@
 import { KVService } from '../services/kvService';
 import { Customer } from '../models/customer';
 import { SubscriptionPlan } from '../models/subscriptionPlan';
-import { AppError, handleError } from '../utils/errorHandler';
 
 export async function handleCustomer(request: Request, kvService: KVService): Promise<Response> {
   try {
     const url = new URL(request.url);
-    const customerId = url.searchParams.get('id');
-
-    if (!customerId) {
-      throw new AppError('Customer ID is required', 400);
-    }
+    
+    const customerId = url.searchParams.get('customerId') ?? request.customerId ?? "";
 
     switch (request.method) {
       case 'GET':
-        if (url.searchParams.get('subscription') === 'true') {
+        if (url.searchParams.get('subscription')) {
           return handleGetSubscriptionDetails(customerId, kvService);
         }
-        return handleGetCustomer(customerId, kvService);
+        return handleGetCustomer(customerId, request, kvService);
       case 'POST':
-        if (url.searchParams.get('activate') === 'true') {
+        if (url.searchParams.get('activate')) {
           return handleActivateSubscription(customerId, request, kvService);
         }
         return handleCreateOrUpdateCustomer(customerId, request, kvService);
@@ -28,27 +24,38 @@ export async function handleCustomer(request: Request, kvService: KVService): Pr
       case 'PATCH':
         return handleChangePlan(customerId, request, kvService);
       default:
-        throw new AppError('Method not allowed', 405);
+        return new Response('Method not allowed', { status: 405 });
     }
   } catch (error) {
-    return handleError(error);
+    console.error('Error in handleCustomer:', error);
+    return new Response('Internal Server Error', { status: 500 });
   }
 }
 
-async function handleGetCustomer(customerId: string, kvService: KVService): Promise<Response> {
+async function handleGetCustomer(customerId: string, request: Request, kvService: KVService): Promise<Response> {
   const customer = await kvService.getCustomer(customerId);
   if (!customer) {
-    throw new AppError('Customer not found', 404);
+    return new Response('Customer not found', { status: 404 });
   }
-  return new Response(JSON.stringify(customer), {
+
+  if (!request.roles?.includes('admin') && customerId !== request.customerId) {
+    return new Response('You are not authorized to view this customer', { status: 403 });
+  }
+
+  // Remove password from customer object before sending response
+  const { password, ...customerWithoutPassword } = customer;
+  return new Response(JSON.stringify(customerWithoutPassword), {
     headers: { 'Content-Type': 'application/json' },
   });
 }
 
 async function handleCreateOrUpdateCustomer(customerId: string, request: Request, kvService: KVService): Promise<Response> {
   try {
+    if (!request.roles?.includes('admin') && customerId !== request.customerId) {
+      return new Response('You are not authorized to create or update this customer', { status: 403 });
+    }
     const customerData: Customer = await request.json();
-    
+
     // Validate customer data
     if (!customerData.name || !customerData.email) {
       return new Response('Name and email are required', { status: 400 });
@@ -119,7 +126,7 @@ async function handleChangePlan(customerId: string, request: Request, kvService:
 async function handleGetSubscriptionDetails(customerId: string, kvService: KVService): Promise<Response> {
   const customer = await kvService.getCustomer(customerId);
   if (!customer) {
-    throw new AppError('Customer not found', 404);
+    return new Response('Customer not found', { status: 404 });
   }
 
   if (customer.subscription_status !== 'active' || !customer.subscription_plan_id) {
@@ -128,12 +135,12 @@ async function handleGetSubscriptionDetails(customerId: string, kvService: KVSer
 
   const plan = await kvService.getSubscriptionPlan(customer.subscription_plan_id);
   if (!plan) {
-    throw new AppError('Subscription plan not found', 404);
+    return new Response('Subscription plan not found', { status: 404 });
   }
 
   const billingCycle = await kvService.getBillingCycle(customerId);
   if (!billingCycle) {
-    throw new AppError('Billing cycle not found', 404);
+    return new Response('Billing cycle not found', { status: 404 });
   }
 
   const subscriptionDetails = {
@@ -166,7 +173,7 @@ async function updateCustomerSession(customerId: string, kvService: KVService): 
 async function handleActivateSubscription(customerId: string, request: Request, kvService: KVService): Promise<Response> {
   const customer = await kvService.getCustomer(customerId);
   if (!customer) {
-    throw new AppError('Customer not found', 404);
+    return new Response('Customer not found', { status: 404 });
   }
 
   if (customer.subscription_status === 'active') {
@@ -175,12 +182,12 @@ async function handleActivateSubscription(customerId: string, request: Request, 
 
   const { planId } = await request.json() as { planId: string };
   if (!planId) {
-    throw new AppError('Plan ID is required to activate subscription', 400);
+    return new Response('Plan ID is required to activate subscription', { status: 400 });
   }
 
   const plan = await kvService.getSubscriptionPlan(planId);
   if (!plan) {
-    throw new AppError('Subscription plan not found', 404);
+    return new Response('Subscription plan not found', { status: 404 });
   }
 
   const now = new Date();
@@ -195,10 +202,22 @@ async function handleActivateSubscription(customerId: string, request: Request, 
   await kvService.setCustomer(customer);
 
   // Update billing cycle in BillingDO
-//   await billingDO.fetch(`/billing-cycle/${customerId}`, {
-//     method: 'POST',
-//     body: JSON.stringify({ startDate: now.toISOString(), endDate: endDate.toISOString() }),
-//   });
+  //   await billingDO.fetch(`/billing-cycle/${customerId}`, {
+  //     method: 'POST',
+  //     body: JSON.stringify({ startDate: now.toISOString(), endDate: endDate.toISOString() }),
+  //   });
 
   return new Response('Subscription activated successfully', { status: 200 });
+}
+
+async function handleListCustomers(request: Request, kvService: KVService): Promise<Response> {
+  const url = new URL(request.url);
+  const limit = parseInt(url.searchParams.get('limit') || '10');
+  const cursor = url.searchParams.get('cursor') || undefined;
+
+  const { customers, cursor: nextCursor } = await kvService.listCustomers(limit, cursor);
+
+  return new Response(JSON.stringify({ customers, nextCursor }), {
+    headers: { 'Content-Type': 'application/json' },
+  });
 }

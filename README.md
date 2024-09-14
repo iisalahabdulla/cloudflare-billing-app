@@ -100,6 +100,7 @@ You'll also need a Cloudflare account with Workers and KV enabled.
    [vars]
    SENDGRID_API_KEY = "YOUR API KEY"
    FROM_EMAIL = "test@example"
+   JWT_SECRET = "your jwt secret"
 
    [triggers]
    crons = ["0 0 * * *", "0 */4 * * *"]
