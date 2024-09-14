@@ -56,7 +56,7 @@ async function handleRegister(request: Request, kvService: KVService, env: Env):
     await kvService.setCustomer(newCustomer);
 
     console.log('Generating JWT');
-    const token = await generateJWT({ customerId: newCustomer.id, email: newCustomer.email, roles: newCustomer.roles }, env.JWT_SECRET);
+    const token = await generateJWT({ customerId: newCustomer.id, email: newCustomer.email, roles: newCustomer.roles ?? [] }, env.JWT_SECRET);
 
     return new Response(JSON.stringify({ token }), {
       status: 201,
@@ -88,7 +88,7 @@ async function handleLogin(request: Request, kvService: KVService, env: Env): Pr
     throw new AppError('Invalid credentials', 401);
   }
 
-  const token = await generateJWT({ customerId: customer.id, email: customer.email, roles: customer.roles }, env.JWT_SECRET);
+  const token = await generateJWT({ customerId: customer.id, email: customer.email, roles: customer.roles ?? [] }, env.JWT_SECRET);
 
   return new Response(JSON.stringify({ token }), {
     status: 200,

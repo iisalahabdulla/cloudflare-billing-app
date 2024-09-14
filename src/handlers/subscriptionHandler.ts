@@ -160,3 +160,15 @@ async function cancelSubscription(customerId: string, kvService: KVService): Pro
 		return handleError(error);
 	}
 }
+
+async function handleListSubscriptions(request: Request, kvService: KVService): Promise<Response> {
+	const url = new URL(request.url);
+	const limit = parseInt(url.searchParams.get('limit') || '10');
+	const cursor = url.searchParams.get('cursor') || undefined;
+
+	const { plans, cursor: nextCursor } = await kvService.listSubscriptionPlans(limit, cursor);
+
+	return new Response(JSON.stringify({ plans, nextCursor }), {
+		headers: { 'Content-Type': 'application/json' },
+	});
+}

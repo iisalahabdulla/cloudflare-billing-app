@@ -55,7 +55,8 @@ async function handleBillingProcess(customerId: string | null, kvService: KVServ
       const customer = await kvService.getCustomer(customerId);
       customers = customer ? [customer] : [];
     } else {
-      customers = await kvService.listCustomers();
+      const { customers: fetchedCustomers } = await kvService.listCustomers();
+      customers = fetchedCustomers;
     }
 
     const invoicesGenerated = await generateInvoices(customers, kvService, emailService);

@@ -125,10 +125,23 @@ async function handleGetPaymentWithPagination(request: Request, kvService: KVSer
     }
   } else {
     const limit = parseInt(url.searchParams.get('limit') || '10');
-    const offset = parseInt(url.searchParams.get('offset') || '0');
-    const payments = await kvService.listPayments(undefined, limit, offset);
-    return new Response(JSON.stringify(payments), {
+    const cursor = url.searchParams.get('cursor') || undefined;
+    const { payments, cursor: nextCursor } = await kvService.listPayments(undefined, limit, cursor);
+    return new Response(JSON.stringify({ payments, nextCursor }), {
       headers: { 'Content-Type': 'application/json' },
     });
   }
+}
+
+async function handleListPayments(request: Request, kvService: KVService): Promise<Response> {
+    const url = new URL(request.url);
+    const limit = parseInt(url.searchParams.get('limit') || '10');
+    const cursor = url.searchParams.get('cursor') || undefined;
+    const status = url.searchParams.get('status') as Payment['status'] | undefined;
+
+    const { payments, cursor: nextCursor } = await kvService.listPayments(status, limit, cursor);
+
+    return new Response(JSON.stringify({ payments, nextCursor }), {
+        headers: { 'Content-Type': 'application/json' },
+    });
 }

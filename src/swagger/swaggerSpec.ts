@@ -114,6 +114,45 @@ export const swaggerSpec = {
                 },
             },
         },
+        '/customer/list': {
+            get: {
+                summary: 'List Customers',
+                security: [{ bearerAuth: [] }, { roles: ['admin'] }],
+                parameters: [
+                    {
+                        name: "limit",
+                        in: "query",
+                        required: false,
+                        schema: { type: 'integer', default: 10 },
+                    },
+                    {
+                        name: "cursor",
+                        in: "query",
+                        required: false,
+                        schema: { type: 'string' },
+                    }
+                ],
+                responses: {
+                    '200': {
+                        description: 'Successful response',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        customers: {
+                                            type: 'array',
+                                            items: { $ref: '#/components/schemas/Customer' },
+                                        },
+                                        nextCursor: { type: 'string' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
         '/customer/subscription': {
             get: {
                 summary: 'Get Customer Subscription Details',
@@ -143,10 +182,10 @@ export const swaggerSpec = {
                         schema: { type: 'integer', default: 10 },
                     },
                     {
-                        name: "offset",
+                        name: "cursor",
                         in: "query",
                         required: false,
-                        schema: { type: 'integer', default: 0 },
+                        schema: { type: 'string' },
                     }
                 ],
                 responses: {
@@ -155,8 +194,14 @@ export const swaggerSpec = {
                         content: {
                             'application/json': {
                                 schema: {
-                                    type: 'array',
-                                    items: { $ref: '#/components/schemas/SubscriptionPlan' },
+                                    type: 'object',
+                                    properties: {
+                                        plans: {
+                                            type: 'array',
+                                            items: { $ref: '#/components/schemas/SubscriptionPlan' },
+                                        },
+                                        nextCursor: { type: 'string' },
+                                    },
                                 },
                             },
                         },
@@ -242,10 +287,10 @@ export const swaggerSpec = {
                         schema: { type: 'integer', default: 10 },
                     },
                     {
-                        name: "offset",
+                        name: "cursor",
                         in: "query",
                         required: false,
-                        schema: { type: 'integer', default: 0 },
+                        schema: { type: 'string' },
                     }
                 ],
                 responses: {
@@ -253,7 +298,16 @@ export const swaggerSpec = {
                         description: 'Successful response',
                         content: {
                             'application/json': {
-                                schema: { $ref: '#/components/schemas/Subscription' },
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        subscriptions: {
+                                            type: 'array',
+                                            items: { $ref: '#/components/schemas/Subscription' },
+                                        },
+                                        nextCursor: { type: 'string' },
+                                    },
+                                },
                             },
                         },
                     },
@@ -308,7 +362,7 @@ export const swaggerSpec = {
                 security: [{ bearerAuth: [] }],
                 parameters: [
                     {
-                        name: "id",
+                        name: "customerId",
                         in: "query",
                         required: false,
                         schema: { type: 'string' },
@@ -320,10 +374,10 @@ export const swaggerSpec = {
                         schema: { type: 'integer', default: 10 },
                     },
                     {
-                        name: "offset",
+                        name: "cursor",
                         in: "query",
                         required: false,
-                        schema: { type: 'integer', default: 0 },
+                        schema: { type: 'string' },
                     }
                 ],
                 responses: {
@@ -332,8 +386,14 @@ export const swaggerSpec = {
                         content: {
                             'application/json': {
                                 schema: {
-                                    type: 'array',
-                                    items: { $ref: '#/components/schemas/Invoice' },
+                                    type: 'object',
+                                    properties: {
+                                        invoices: {
+                                            type: 'array',
+                                            items: { $ref: '#/components/schemas/Invoice' },
+                                        },
+                                        nextCursor: { type: 'string' },
+                                    },
                                 },
                             },
                         },
@@ -342,6 +402,49 @@ export const swaggerSpec = {
             },
         },
         '/payment': {
+            get: {
+                summary: 'List Payments',
+                security: [{ bearerAuth: [] }, { roles: ['admin'] }],
+                parameters: [
+                    {
+                        name: "status",
+                        in: "query",
+                        required: false,
+                        schema: { type: 'string', enum: ['success', 'failed', 'pending'] },
+                    },
+                    {
+                        name: "limit",
+                        in: "query",
+                        required: false,
+                        schema: { type: 'integer', default: 10 },
+                    },
+                    {
+                        name: "cursor",
+                        in: "query",
+                        required: false,
+                        schema: { type: 'string' },
+                    }
+                ],
+                responses: {
+                    '200': {
+                        description: 'Successful response',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        payments: {
+                                            type: 'array',
+                                            items: { $ref: '#/components/schemas/Payment' },
+                                        },
+                                        nextCursor: { type: 'string' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
             post: {
                 summary: 'Process Payment',
                 security: [{ bearerAuth: [] }],
@@ -458,6 +561,18 @@ export const swaggerSpec = {
                     payment_method: { type: 'string', enum: ['credit_card', 'bank_transfer', 'paypal', 'other'] },
                 },
                 required: ['amount', 'payment_method'],
+            },
+            Payment: {
+                type: 'object',
+                properties: {
+                    id: { type: 'string' },
+                    invoice_id: { type: 'string' },
+                    customer_id: { type: 'string' },
+                    amount: { type: 'number' },
+                    payment_method: { type: 'string', enum: ['credit_card', 'bank_transfer', 'paypal', 'other'] },
+                    payment_date: { type: 'string', format: 'date-time' },
+                    status: { type: 'string', enum: ['success', 'failed', 'pending'] },
+                },
             },
         },
         securitySchemes: {

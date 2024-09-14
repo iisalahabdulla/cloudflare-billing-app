@@ -34,11 +34,10 @@ async function handleGetSubscriptionPlan(request: Request, kvService: KVService)
       return new Response('Subscription plan not found', { status: 404 });
     }
   } else {
-    const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get('limit') || '10');
-    const offset = parseInt(url.searchParams.get('offset') || '0');
-    const plans = await kvService.listSubscriptionPlans(limit, offset);
-    return new Response(JSON.stringify(plans), {
+    const cursor = url.searchParams.get('cursor') || undefined;
+    const { plans, cursor: nextCursor } = await kvService.listSubscriptionPlans(limit, cursor);
+    return new Response(JSON.stringify({ plans, nextCursor }), {
       headers: { 'Content-Type': 'application/json' },
     });
   }

@@ -200,3 +200,15 @@ async function handleActivateSubscription(customerId: string, request: Request, 
 
   return new Response('Subscription activated successfully', { status: 200 });
 }
+
+async function handleListCustomers(request: Request, kvService: KVService): Promise<Response> {
+    const url = new URL(request.url);
+    const limit = parseInt(url.searchParams.get('limit') || '10');
+    const cursor = url.searchParams.get('cursor') || undefined;
+
+    const { customers, cursor: nextCursor } = await kvService.listCustomers(limit, cursor);
+
+    return new Response(JSON.stringify({ customers, nextCursor }), {
+        headers: { 'Content-Type': 'application/json' },
+    });
+}

@@ -12,8 +12,10 @@ export async function handleInvoice(request: Request, kvService: KVService, emai
       case 'GET':
         if (invoiceId) {
           return await handleGetInvoice(request, kvService);
-        } else {
+        } else if (url.searchParams.get('customerId')) {
           return await handleListCustomerInvoices(request, kvService);
+        } else if (request.roles?.includes('admin')) {
+          return await handleListAllInvoices(request, kvService);
         }
       default:
         throw new AppError('Method not allowed', 405);
@@ -25,15 +27,26 @@ export async function handleInvoice(request: Request, kvService: KVService, emai
 
 
 async function handleGetInvoice(request: Request, kvService: KVService): Promise<Response> {
-  const url = new URL(request.url);
-  const invoiceId = url.searchParams.get('invoiceId');
+  const invoiceId = new URL(request.url).searchParams.get('invoiceId');
+  const customerId = request.customerId;
+
   if (!invoiceId) {
     throw new AppError('Invoice ID is required', 400);
   }
+
+  if (!customerId) {
+    throw new AppError('Customer ID is required', 400);
+  }
+
   const invoice = await kvService.getInvoice(invoiceId);
   if (!invoice) {
     throw new AppError('Invoice not found', 404);
   }
+
+  if (customerId !== invoice.customer_id && !request.roles?.includes('admin')) {
+    throw new AppError('Forbidden', 403);
+  }
+
   return new Response(JSON.stringify(invoice), {
     headers: { 'Content-Type': 'application/json' },
   });
@@ -46,9 +59,9 @@ async function handleListCustomerInvoices(request: Request, kvService: KVService
     throw new AppError('Customer ID is required', 400);
   }
   const limit = parseInt(url.searchParams.get('limit') || '10');
-  const offset = parseInt(url.searchParams.get('offset') || '0');
-  const invoices = await kvService.listInvoices(customerId, limit, offset);
-  return new Response(JSON.stringify(invoices), {
+  const cursor = url.searchParams.get('cursor') || undefined;
+  const { invoices, cursor: nextCursor } = await kvService.listInvoices(customerId, limit, cursor);
+  return new Response(JSON.stringify({ invoices, nextCursor }), {
     headers: { 'Content-Type': 'application/json' },
   });
 }
@@ -56,9 +69,9 @@ async function handleListCustomerInvoices(request: Request, kvService: KVService
 async function handleListAllInvoices(request: Request, kvService: KVService): Promise<Response> {
   const url = new URL(request.url);
   const limit = parseInt(url.searchParams.get('limit') || '10');
-  const offset = parseInt(url.searchParams.get('offset') || '0');
-  const invoices = await kvService.listInvoices(undefined, limit, offset);
-  return new Response(JSON.stringify(invoices), {
+  const cursor = url.searchParams.get('cursor') || undefined;
+  const { invoices, cursor: nextCursor } = await kvService.listInvoices(undefined, limit, cursor);
+  return new Response(JSON.stringify({ invoices, nextCursor }), {
     headers: { 'Content-Type': 'application/json' },
   });
 }

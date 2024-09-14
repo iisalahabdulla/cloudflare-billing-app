@@ -46,14 +46,6 @@ export default {
                         return authResult; // This is the 401 response
                     }
 
-                    // Apply role middleware for admin routes
-                    if (path.startsWith('admin')) {
-                        const roleResult = roleMiddleware(['admin'])(request, env);
-                        if (roleResult instanceof Response) {
-                            return roleResult; // This is the 403 response
-                        }
-                    }
-
                     switch (path) {
                         case 'subscription':
                             return handleSubscription(request, kvService);
