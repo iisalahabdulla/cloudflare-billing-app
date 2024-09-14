@@ -21,7 +21,6 @@ export async function handlePayment(request: Request, kvService: KVService, emai
   }
 }
 
-
 async function handleGetPayment(paymentId: string | null, kvService: KVService): Promise<Response> {
   if (paymentId) {
     const payment = await kvService.getPayment(paymentId);
@@ -45,9 +44,27 @@ export async function handleProcessPayment(invoiceId: string, request: Request, 
     const paymentData: Omit<Payment, 'id' | 'status'> = await request.json();
     const customerId = request.customerId ?? "";
     const email = request.email ?? "";
+
     // Validate payment data
     if (!invoiceId || !customerId || !paymentData.amount || !paymentData.payment_method) {
       return new Response('Invalid payment data', { status: 400 });
+    }
+
+    const customer = await kvService.getCustomer(customerId);
+    console.log({ customer });
+    if (!customer) {
+      return new Response('Customer not found', { status: 404 });
+    }
+
+    const invoice = await kvService.getInvoice(invoiceId);
+    if (!invoice) {
+      return new Response('Invoice not found', { status: 404 });
+    }
+
+    // Check if payment amount is sufficient
+    if (paymentData.amount < invoice.amount) {
+      await emailService.sendPaymentFailedNotification(email, invoiceId, paymentData.amount);
+      return new Response('Payment failed due to insufficient funds', { status: 402 });
     }
 
     // Process the payment (in a real-world scenario, you'd integrate with a payment gateway here)
@@ -62,23 +79,17 @@ export async function handleProcessPayment(invoiceId: string, request: Request, 
 
     await kvService.setPayment(payment);
 
-    const customer = await kvService.getCustomer(customerId);
-    console.log({ customer });
-    if (!customer) {
-      throw new Error('Customer not found');
-    }
-
     if (paymentStatus === 'success') {
       await updateInvoiceStatus(invoiceId, kvService);
       await emailService.sendPaymentSuccessNotification(email, payment.invoice_id, payment.amount);
+      return new Response(JSON.stringify(payment), {
+        status: 201,
+        headers: { 'Content-Type': 'application/json' },
+      });
     } else {
       await emailService.sendPaymentFailedNotification(email, payment.invoice_id, payment.amount);
+      return new Response('Payment failed', { status: 402 });
     }
-
-    return new Response(JSON.stringify(payment), {
-      status: 201,
-      headers: { 'Content-Type': 'application/json' },
-    });
   } catch (error) {
     return handleError(error);
   }

@@ -85,4 +85,82 @@ describe('Invoice Generation', () => {
     expect(responseBody.amount).toBe(plan.price);
     expect(mockEmailService.sendInvoiceNotification).toHaveBeenCalled();
   });
+
+  test('handleGenerateInvoice should return 404 if customer does not exist', async () => {
+    const customerId = 'nonexistent-customer';
+    mockKVNamespace.get.mockResolvedValueOnce(null);
+
+    const request = new Request('https://dummy-url/billing', {
+      method: 'POST',
+    });
+    request.customerId = customerId;
+
+    const response = await handleGenerateInvoice(request.customerId, kvService, emailService);
+
+    expect(response.status).toBe(404);
+    expect(await response.text()).toBe('Customer not found');
+  });
+
+  test('handleGenerateInvoice should return 404 if subscription plan does not exist', async () => {
+    const customerId = 'customer1';
+    const customer: Customer = {
+      id: customerId,
+      name: 'Test Customer',
+      email: 'test@example.com',
+      subscription_plan_id: 'nonexistent-plan',
+      subscription_status: 'active',
+      subscription_start_date: '2023-01-01T00:00:00Z',
+      subscription_end_date: '2023-02-01T00:00:00Z',
+    };
+
+    mockKVNamespace.get.mockResolvedValueOnce(JSON.stringify(customer));
+    mockKVNamespace.get.mockResolvedValueOnce(null);
+
+    const request = new Request('https://dummy-url/billing', {
+      method: 'POST',
+    });
+    request.customerId = customerId;
+
+    const response = await handleGenerateInvoice(request.customerId, kvService, emailService);
+
+    expect(response.status).toBe(404);
+    expect(await response.text()).toBe('Subscription plan not found');
+  });
+
+  test('handleGenerateInvoice should return 400 if billing cycle data is missing', async () => {
+    const customerId = 'customer1';
+    const planId = 'plan1';
+    const customer: Customer = {
+      id: customerId,
+      name: 'Test Customer',
+      email: 'test@example.com',
+      subscription_plan_id: planId,
+      subscription_status: 'active',
+      subscription_start_date: '2023-01-01T00:00:00Z',
+      subscription_end_date: '2023-02-01T00:00:00Z',
+    };
+    const plan: SubscriptionPlan = {
+      id: planId,
+      name: 'Basic Plan',
+      description: 'Basic subscription plan',
+      price: 9.99,
+      billing_cycle: 'monthly',
+      features: ['feature1', 'feature2'],
+      status: 'active',
+    };
+
+    mockKVNamespace.get.mockResolvedValueOnce(JSON.stringify(customer));
+    mockKVNamespace.get.mockResolvedValueOnce(JSON.stringify(plan));
+    mockKVNamespace.get.mockResolvedValueOnce(null);
+
+    const request = new Request('https://dummy-url/billing', {
+      method: 'POST',
+    });
+    request.customerId = customerId;
+
+    const response = await handleGenerateInvoice(request.customerId, kvService, emailService);
+
+    expect(response.status).toBe(400);
+    expect(await response.text()).toBe('Billing cycle data not found');
+  });
 });

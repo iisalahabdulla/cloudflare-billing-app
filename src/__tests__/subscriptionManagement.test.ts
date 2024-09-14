@@ -280,4 +280,65 @@ describe('Subscription Management', () => {
     expect(response.status).toBe(400);
     expect(await response.text()).toBe('Customer does not have an active subscription');
   });
+
+  test('handleSubscription should return 404 when creating a subscription for a non-existent customer', async () => {
+    const customerId = 'nonexistent-customer';
+    const planId = 'plan1';
+
+    kvService.getCustomer = jest.fn().mockResolvedValue(null);
+
+    const request = new Request('https://dummy-url/subscription?planId=' + planId, {
+      method: 'POST',
+    });
+    (request as any).customerId = customerId;
+
+    const response = await handleSubscription(request, kvService);
+
+    expect(response.status).toBe(404);
+    expect(await response.text()).toBe('Customer not found');
+  });
+
+  test('handleSubscription should return 404 when updating a subscription with a non-existent plan', async () => {
+    const customerId = 'customer1';
+    const oldPlanId = 'plan1';
+    const newPlanId = 'nonexistent-plan';
+    const customer: Customer = {
+      id: customerId,
+      name: 'Test Customer',
+      email: 'test@example.com',
+      subscription_plan_id: oldPlanId,
+      subscription_status: 'active',
+      subscription_start_date: '2023-01-01T00:00:00Z',
+      subscription_end_date: '2023-02-01T00:00:00Z',
+    };
+
+    kvService.getCustomer = jest.fn().mockResolvedValue(customer);
+    kvService.getSubscriptionPlan = jest.fn().mockResolvedValue(null);
+
+    const request = new Request('https://dummy-url/subscription?planId=' + newPlanId, {
+      method: 'PUT',
+    });
+    (request as any).customerId = customerId;
+
+    const response = await handleSubscription(request, kvService);
+
+    expect(response.status).toBe(404);
+    expect(await response.text()).toBe('New subscription plan not found');
+  });
+
+  test('handleSubscription should return 404 when cancelling a subscription for a non-existent customer', async () => {
+    const customerId = 'nonexistent-customer';
+
+    kvService.getCustomer = jest.fn().mockResolvedValue(null);
+
+    const request = new Request('https://dummy-url/subscription', {
+      method: 'DELETE',
+    });
+    (request as any).customerId = customerId;
+
+    const response = await handleSubscription(request, kvService);
+
+    expect(response.status).toBe(404);
+    expect(await response.text()).toBe('Customer not found');
+  });
 });

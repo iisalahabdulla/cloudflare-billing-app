@@ -93,4 +93,108 @@ describe('Payment Processing', () => {
     expect(responseBody.status).toBe('success');
     expect(mockEmailService.sendPaymentSuccessNotification).toHaveBeenCalled();
   });
+
+  test('handlePayment should return 404 if customer does not exist', async () => {
+    const customerId = 'nonexistent-customer';
+    const invoiceId = 'invoice1';
+
+    mockKVNamespace.get.mockResolvedValueOnce(null);
+
+    const paymentData = {
+      amount: 9.99,
+      payment_method: 'credit_card',
+    };
+
+    const request = new Request('https://dummy-url/payment?invoiceId=' + invoiceId, {
+      method: 'POST',
+      body: JSON.stringify(paymentData),
+    });
+    request.customerId = customerId;
+
+    const response = await handlePayment(request, kvService, emailService);
+
+    expect(response.status).toBe(404);
+    expect(await response.text()).toBe('Customer not found');
+  });
+
+  test('handlePayment should return 404 if invoice does not exist', async () => {
+    const customerId = 'customer1';
+    const invoiceId = 'nonexistent-invoice';
+    const customer: Customer = {
+      id: customerId,
+      name: 'Test Customer',
+      email: 'test@example.com',
+      subscription_plan_id: 'plan1',
+      subscription_status: 'active',
+      subscription_start_date: '2023-01-01T00:00:00Z',
+      subscription_end_date: '2023-02-01T00:00:00Z',
+    };
+
+    mockKVNamespace.get.mockResolvedValueOnce(JSON.stringify(customer));
+    mockKVNamespace.get.mockResolvedValueOnce(null);
+
+    const paymentData = {
+      amount: 9.99,
+      payment_method: 'credit_card',
+    };
+
+    const request = new Request('https://dummy-url/payment?invoiceId=' + invoiceId, {
+      method: 'POST',
+      body: JSON.stringify(paymentData),
+    });
+    request.customerId = customerId;
+
+    const response = await handlePayment(request, kvService, emailService);
+
+    expect(response.status).toBe(404);
+    expect(await response.text()).toBe('Invoice not found');
+  });
+
+  test('handlePayment should return 402 if payment fails due to insufficient funds', async () => {
+    const customerId = 'customer1';
+    const invoiceId = 'invoice1';
+    const customer: Customer = {
+      id: customerId,
+      name: 'Test Customer',
+      email: 'test@example.com',
+      subscription_plan_id: 'plan1',
+      subscription_status: 'active',
+      subscription_start_date: '2023-01-01T00:00:00Z',
+      subscription_end_date: '2023-02-01T00:00:00Z',
+    };
+    const invoice: Invoice = {
+      id: invoiceId,
+      customer_id: customerId,
+      amount: 9.99,
+      due_date: '2023-02-01T00:00:00Z',
+      payment_status: 'pending',
+      payment_date: null,
+    };
+
+    mockKVNamespace.get.mockResolvedValueOnce(JSON.stringify(customer));
+    mockKVNamespace.get.mockResolvedValueOnce(JSON.stringify(invoice));
+    mockKVNamespace.put.mockResolvedValue(undefined);
+
+    const paymentData = {
+      amount: 5,
+      payment_method: 'credit_card',
+    };
+
+    const request = new Request('https://dummy-url/payment?invoiceId=' + invoiceId, {
+      method: 'POST',
+      body: JSON.stringify(paymentData),
+    });
+    request.customerId = customerId;
+    request.email = customer.email;
+
+    // Mock processPayment to return 'failed' for this test case
+    const { processPayment } = require('../handlers/paymentHandler');
+    processPayment.mockResolvedValueOnce('failed');
+
+    const response = await handlePayment(request, kvService, emailService);
+
+    expect(response.status).toBe(402);
+    expect(await response.text()).toBe('Payment failed due to insufficient funds');
+    expect(mockEmailService.sendPaymentFailedNotification).toHaveBeenCalled();
+  });
 });

@@ -33,9 +33,9 @@ export async function handleGenerateInvoice(customerId: string, kvService: KVSer
       return new Response('Subscription plan not found', { status: 404 });
     }
 
-    const billingCycle = await kvService.getBillingCycle(customerId);
+    const billingCycle = await kvService.getBillingCycle(customer.subscription_plan_id);
     if (!billingCycle) {
-      return new Response('Billing cycle not found', { status: 404 });
+      return new Response('Billing cycle data not found', { status: 400 }); // Update status code to 400
     }
 
     const invoice = await createInvoice(customer, plan, billingCycle, kvService, emailService);
