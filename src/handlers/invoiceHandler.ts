@@ -36,14 +36,20 @@ async function handleGetInvoice(invoiceId: string, kvService: KVService): Promis
 }
 
 async function handleListCustomerInvoices(customerId: string, kvService: KVService): Promise<Response> {
-  const invoices = await kvService.listInvoices(customerId);
+  const url = new URL(request.url);
+  const limit = parseInt(url.searchParams.get('limit') || '10');
+  const offset = parseInt(url.searchParams.get('offset') || '0');
+  const invoices = await kvService.listInvoices(customerId, limit, offset);
   return new Response(JSON.stringify(invoices), {
     headers: { 'Content-Type': 'application/json' },
   });
 }
 
 async function handleListAllInvoices(kvService: KVService): Promise<Response> {
-  const invoices = await kvService.listInvoices();
+  const url = new URL(request.url);
+  const limit = parseInt(url.searchParams.get('limit') || '10');
+  const offset = parseInt(url.searchParams.get('offset') || '0');
+  const invoices = await kvService.listInvoices(undefined, limit, offset);
   return new Response(JSON.stringify(invoices), {
     headers: { 'Content-Type': 'application/json' },
   });

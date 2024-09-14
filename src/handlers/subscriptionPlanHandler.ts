@@ -8,7 +8,7 @@ export async function handleSubscriptionPlan(request: Request, kvService: KVServ
 
   switch (request.method) {
     case 'GET':
-      return handleGetSubscriptionPlan(planId, kvService);
+      return handleGetSubscriptionPlan(request, kvService);
     case 'POST':
       return handleCreateSubscriptionPlan(request, kvService);
     case 'PUT':
@@ -20,7 +20,10 @@ export async function handleSubscriptionPlan(request: Request, kvService: KVServ
   }
 }
 
-async function handleGetSubscriptionPlan(planId: string | null, kvService: KVService): Promise<Response> {
+async function handleGetSubscriptionPlan(request: Request, kvService: KVService): Promise<Response> {
+  const url = new URL(request.url);
+  const planId = url.searchParams.get('id');
+
   if (planId) {
     const plan = await kvService.getSubscriptionPlan(planId);
     if (plan) {
@@ -31,7 +34,10 @@ async function handleGetSubscriptionPlan(planId: string | null, kvService: KVSer
       return new Response('Subscription plan not found', { status: 404 });
     }
   } else {
-    const plans = await kvService.listSubscriptionPlans();
+    const url = new URL(request.url);
+    const limit = parseInt(url.searchParams.get('limit') || '10');
+    const offset = parseInt(url.searchParams.get('offset') || '0');
+    const plans = await kvService.listSubscriptionPlans(limit, offset);
     return new Response(JSON.stringify(plans), {
       headers: { 'Content-Type': 'application/json' },
     });

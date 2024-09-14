@@ -61,10 +61,10 @@ export class KVService {
         await this.namespaces.SUBSCRIPTIONS.put(plan.id, JSON.stringify(plan));
     }
 
-    async listSubscriptionPlans(): Promise<SubscriptionPlan[]> {
+    async listSubscriptionPlans(limit: number = 10, offset: number = 0): Promise<SubscriptionPlan[]> {
         const list = await this.namespaces.SUBSCRIPTIONS.list();
         const plans: SubscriptionPlan[] = [];
-        for (const key of list.keys) {
+        for (const key of list.keys.slice(offset, offset + limit)) {
             const plan = await this.getSubscriptionPlan(key.name);
             if (plan) plans.push(plan);
         }
@@ -75,10 +75,10 @@ export class KVService {
         await this.namespaces.SUBSCRIPTIONS.delete(id);
     }
 
-    async listInvoices(customerId?: string): Promise<Invoice[]> {
+    async listInvoices(customerId?: string, limit: number = 10, offset: number = 0): Promise<Invoice[]> {
         const list = await this.namespaces.INVOICES.list();
         const invoices: Invoice[] = [];
-        for (const key of list.keys) {
+        for (const key of list.keys.slice(offset, offset + limit)) {
             const invoice = await this.getInvoice(key.name);
             if (invoice && (!customerId || invoice.customer_id === customerId)) {
                 invoices.push(invoice);
@@ -87,10 +87,10 @@ export class KVService {
         return invoices;
     }
 
-    async listCustomers(): Promise<Customer[]> {
+    async listCustomers(limit: number = 10, offset: number = 0): Promise<Customer[]> {
         const list = await this.namespaces.CUSTOMERS.list();
         const customers: Customer[] = [];
-        for (const key of list.keys) {
+        for (const key of list.keys.slice(offset, offset + limit)) {
             const customer = await this.getCustomer(key.name);
             if (customer) customers.push(customer);
         }
@@ -173,10 +173,10 @@ export class KVService {
         }
     }
 
-    async listPayments(status?: Payment['status']): Promise<Payment[]> {
+    async listPayments(status?: Payment['status'], limit: number = 10, offset: number = 0): Promise<Payment[]> {
         const list = await this.namespaces.PAYMENTS.list();
         const payments: Payment[] = [];
-        for (const key of list.keys) {
+        for (const key of list.keys.slice(offset, offset + limit)) {
             const payment = await this.getPayment(key.name);
             if (payment && (!status || payment.status === status)) {
                 payments.push(payment);

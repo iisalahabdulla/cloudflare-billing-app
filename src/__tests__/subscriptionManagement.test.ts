@@ -78,7 +78,7 @@ describe('Subscription Management', () => {
     
     // Mock the setBillingCycle method
     kvService.setBillingCycle = jest.fn().mockResolvedValue(undefined);
-
+    
     const request = new Request('https://dummy-url/subscription?planId=' + planId, {
       method: 'POST',
     });

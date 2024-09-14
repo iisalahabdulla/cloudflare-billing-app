@@ -109,3 +109,26 @@ async function updateInvoiceStatus(invoiceId: string, kvService: KVService): Pro
     await kvService.setInvoice(invoice);
   }
 }
+
+async function handleGetPaymentWithPagination(request: Request, kvService: KVService): Promise<Response> {
+  const url = new URL(request.url);
+  const paymentId = url.searchParams.get('id');
+
+  if (paymentId) {
+    const payment = await kvService.getPayment(paymentId);
+    if (payment) {
+      return new Response(JSON.stringify(payment), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } else {
+      return new Response('Payment not found', { status: 404 });
+    }
+  } else {
+    const limit = parseInt(url.searchParams.get('limit') || '10');
+    const offset = parseInt(url.searchParams.get('offset') || '0');
+    const payments = await kvService.listPayments(undefined, limit, offset);
+    return new Response(JSON.stringify(payments), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+}

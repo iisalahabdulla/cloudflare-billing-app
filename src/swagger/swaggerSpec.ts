@@ -84,6 +84,8 @@ export const swaggerSpec = {
         '/customer': {
             get: {
                 summary: 'Get Customer Details',
+                parameters: [
+                ],
                 responses: {
                     '200': {
                         description: 'Successful response',
@@ -128,9 +130,23 @@ export const swaggerSpec = {
                 },
             },
         },
-        '/subscription-plan': {
+        '/plan': {
             get: {
                 summary: 'Get All Subscription Plans',
+                parameters: [
+                    {
+                        name: "limit",
+                        in: "query",
+                        required: false,
+                        schema: { type: 'integer', default: 10 },
+                    },
+                    {
+                        name: "offset",
+                        in: "query",
+                        required: false,
+                        schema: { type: 'integer', default: 0 },
+                    }
+                ],
                 responses: {
                     '200': {
                         description: 'Successful response',
@@ -161,16 +177,16 @@ export const swaggerSpec = {
                 },
             },
         },
-        '/subscription-plan/{id}': {
+        '/plan/{id}': {
             get: {
                 summary: 'Get Specific Subscription Plan',
                 parameters: [
                     {
-                        name: 'id',
-                        in: 'path',
+                        name: "id",
+                        in: "query",
                         required: true,
                         schema: { type: 'string' },
-                    },
+                    }
                 ],
                 responses: {
                     '200': {
@@ -212,6 +228,20 @@ export const swaggerSpec = {
         '/subscription': {
             get: {
                 summary: 'Get Subscription',
+                parameters: [
+                    {
+                        name: "limit",
+                        in: "query",
+                        required: false,
+                        schema: { type: 'integer', default: 10 },
+                    },
+                    {
+                        name: "offset",
+                        in: "query",
+                        required: false,
+                        schema: { type: 'integer', default: 0 },
+                    }
+                ],
                 responses: {
                     '200': {
                         description: 'Successful response',
@@ -272,6 +302,18 @@ export const swaggerSpec = {
                         in: "query",
                         required: false,
                         schema: { type: 'string' },
+                    },
+                    {
+                        name: "limit",
+                        in: "query",
+                        required: false,
+                        schema: { type: 'integer', default: 10 },
+                    },
+                    {
+                        name: "offset",
+                        in: "query",
+                        required: false,
+                        schema: { type: 'integer', default: 0 },
                     }
                 ],
                 responses: {
