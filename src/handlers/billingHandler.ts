@@ -1,6 +1,5 @@
 import { KVService } from '../services/kvService';
 import { EmailService } from '../services/emailService';
-import { AppError, handleError } from '../utils/errorHandler';
 import { Customer } from '../models/customer';
 import { SubscriptionPlan } from '../models/subscriptionPlan';
 import { Invoice } from '../models/invoice';
@@ -35,7 +34,7 @@ export async function handleGenerateInvoice(customerId: string, kvService: KVSer
 
     const billingCycle = await kvService.getBillingCycle(customer.id);
     if (!billingCycle) {
-      return new Response('Billing cycle data not found', { status: 400 }); // Update status code to 400
+      return new Response('Billing cycle data not found', { status: 400 });
     }
 
     const invoice = await createInvoice(customer, plan, billingCycle, kvService, emailService);
@@ -44,7 +43,8 @@ export async function handleGenerateInvoice(customerId: string, kvService: KVSer
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    return handleError(error);
+    console.error('Error in handleGenerateInvoice:', error);
+    return new Response('Internal Server Error', { status: 500 });
   }
 }
 
@@ -62,7 +62,8 @@ async function handleBillingProcess(customerId: string | null, kvService: KVServ
     const invoicesGenerated = await generateInvoices(customers, kvService, emailService);
     return new Response(`Billing process completed. Generated ${invoicesGenerated} invoices.`, { status: 200 });
   } catch (error) {
-    return handleError(error);
+    console.error('Error in handleBillingProcess:', error);
+    return new Response('Internal Server Error', { status: 500 });
   }
 }
 

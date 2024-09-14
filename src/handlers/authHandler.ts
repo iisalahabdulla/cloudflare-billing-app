@@ -1,6 +1,5 @@
 import { KVService } from '../services/kvService';
 import { Customer } from '../models/customer';
-import { AppError, handleError } from '../utils/errorHandler';
 import { generateJWT, verifyJWT } from '../utils/jwtUtils';
 import bcrypt from 'bcryptjs';
 import { Env } from '../types/env';
@@ -16,10 +15,11 @@ export async function handleAuth(request: Request, kvService: KVService, env: En
       case 'login':
         return await handleLogin(request, kvService, env);
       default:
-        throw new AppError('Invalid auth endpoint', 404);
+        return new Response('Invalid auth endpoint', { status: 404 });
     }
   } catch (error) {
-    return handleError(error);
+    console.error('Error in handleAuth:', error);
+    return new Response('Internal Server Error', { status: 500 });
   }
 }
 
@@ -28,14 +28,14 @@ async function handleRegister(request: Request, kvService: KVService, env: Env):
     const { name, email, password } = await request.json() as { name: string; email: string; password: string };
 
     if (!name || !email || !password) {
-      throw new AppError('Name, email, and password are required', 400);
+      return new Response('Name, email, and password are required', { status: 400 });
     }
 
     console.log('Checking for existing customer');
     const existingCustomer = await kvService.getCustomerByEmail(email);
     if (existingCustomer) {
       console.log('Existing customer found');
-      throw new AppError('Email already registered', 400);
+      return new Response('Email already registered', { status: 400 });
     }
 
     console.log('Hashing password');
@@ -64,7 +64,7 @@ async function handleRegister(request: Request, kvService: KVService, env: Env):
     });
   } catch (error) {
     console.error('Error in handleRegister:', error);
-    throw error;  // Re-throw the error to be caught by the outer try-catch
+    return new Response('Internal Server Error', { status: 500 });
   }
 }
 
@@ -72,20 +72,20 @@ async function handleLogin(request: Request, kvService: KVService, env: Env): Pr
   const { email, password } = await request.json() as { email: string; password: string };
 
   if (!email || !password) {
-    throw new AppError('Email and password are required', 400);
+    return new Response('Email and password are required', { status: 400 });
   }
 
   const customer = await kvService.getCustomerByEmail(email);
   if (!customer) {
-    throw new AppError('Invalid credentials', 401);
+    return new Response('Invalid credentials', { status: 401 });
   }
   if (!customer.password) {
-    throw new AppError('Password is not set', 401);
+    return new Response('Password is not set', { status: 401 });
   }
 
   const isPasswordValid = await bcrypt.compare(password, customer.password);
   if (!isPasswordValid) {
-    throw new AppError('Invalid credentials', 401);
+    return new Response('Invalid credentials', { status: 401 });
   }
 
   const token = await generateJWT({ customerId: customer.id, email: customer.email, roles: customer.roles ?? [] }, env.JWT_SECRET);

@@ -18,18 +18,18 @@ import { roleMiddleware } from './middleware/roleMiddleware';
 
 export default {
     async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-        const kvService = new KVService({
-            CUSTOMERS: env.CUSTOMERS,
-            SUBSCRIPTIONS: env.SUBSCRIPTIONS,
-            INVOICES: env.INVOICES,
-            PAYMENTS: env.PAYMENTS,
-        });
-        const emailService = new EmailService(env.SENDGRID_API_KEY, env.FROM_EMAIL);
-
-        const url = new URL(request.url);
-        const path = url.pathname.split('/')[1];
-
         try {
+            const kvService = new KVService({
+                CUSTOMERS: env.CUSTOMERS,
+                SUBSCRIPTIONS: env.SUBSCRIPTIONS,
+                INVOICES: env.INVOICES,
+                PAYMENTS: env.PAYMENTS,
+            });
+            const emailService = new EmailService(env.SENDGRID_API_KEY, env.FROM_EMAIL);
+
+            const url = new URL(request.url);
+            const path = url.pathname.split('/')[1];
+
             switch (path) {
                 case 'auth':
                     return handleAuth(request, kvService, env);
@@ -64,7 +64,8 @@ export default {
                     }
             }
         } catch (error) {
-            return handleError(error);
+            console.error('Unhandled error:', error);
+            return new Response('Internal Server Error', { status: 500 });
         }
     },
 

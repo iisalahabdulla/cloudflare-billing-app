@@ -1,7 +1,6 @@
 import { KVService } from '../services/kvService';
 import { Customer } from '../models/customer';
 import { SubscriptionPlan } from '../models/subscriptionPlan';
-import { AppError, handleError } from '../utils/errorHandler';
 
 export async function handleCustomer(request: Request, kvService: KVService): Promise<Response> {
   try {
@@ -25,21 +24,22 @@ export async function handleCustomer(request: Request, kvService: KVService): Pr
       case 'PATCH':
         return handleChangePlan(customerId, request, kvService);
       default:
-        throw new AppError('Method not allowed', 405);
+        return new Response('Method not allowed', { status: 405 });
     }
   } catch (error) {
-    return handleError(error);
+    console.error('Error in handleCustomer:', error);
+    return new Response('Internal Server Error', { status: 500 });
   }
 }
 
 async function handleGetCustomer(customerId: string, request: Request, kvService: KVService): Promise<Response> {
   const customer = await kvService.getCustomer(customerId);
   if (!customer) {
-    throw new AppError('Customer not found', 404);
+    return new Response('Customer not found', { status: 404 });
   }
 
   if (!request.roles?.includes('admin') && customerId !== request.customerId) {
-    throw new AppError('You are not authorized to view this customer', 403);
+    return new Response('You are not authorized to view this customer', { status: 403 });
   }
 
   // Remove password from customer object before sending response
@@ -52,7 +52,7 @@ async function handleGetCustomer(customerId: string, request: Request, kvService
 async function handleCreateOrUpdateCustomer(customerId: string, request: Request, kvService: KVService): Promise<Response> {
   try {
     if (!request.roles?.includes('admin') && customerId !== request.customerId) {
-      throw new AppError('You are not authorized to create or update this customer', 403);
+      return new Response('You are not authorized to create or update this customer', { status: 403 });
     }
     const customerData: Customer = await request.json();
 
@@ -126,7 +126,7 @@ async function handleChangePlan(customerId: string, request: Request, kvService:
 async function handleGetSubscriptionDetails(customerId: string, kvService: KVService): Promise<Response> {
   const customer = await kvService.getCustomer(customerId);
   if (!customer) {
-    throw new AppError('Customer not found', 404);
+    return new Response('Customer not found', { status: 404 });
   }
 
   if (customer.subscription_status !== 'active' || !customer.subscription_plan_id) {
@@ -135,12 +135,12 @@ async function handleGetSubscriptionDetails(customerId: string, kvService: KVSer
 
   const plan = await kvService.getSubscriptionPlan(customer.subscription_plan_id);
   if (!plan) {
-    throw new AppError('Subscription plan not found', 404);
+    return new Response('Subscription plan not found', { status: 404 });
   }
 
   const billingCycle = await kvService.getBillingCycle(customerId);
   if (!billingCycle) {
-    throw new AppError('Billing cycle not found', 404);
+    return new Response('Billing cycle not found', { status: 404 });
   }
 
   const subscriptionDetails = {
@@ -173,7 +173,7 @@ async function updateCustomerSession(customerId: string, kvService: KVService): 
 async function handleActivateSubscription(customerId: string, request: Request, kvService: KVService): Promise<Response> {
   const customer = await kvService.getCustomer(customerId);
   if (!customer) {
-    throw new AppError('Customer not found', 404);
+    return new Response('Customer not found', { status: 404 });
   }
 
   if (customer.subscription_status === 'active') {
@@ -182,12 +182,12 @@ async function handleActivateSubscription(customerId: string, request: Request, 
 
   const { planId } = await request.json() as { planId: string };
   if (!planId) {
-    throw new AppError('Plan ID is required to activate subscription', 400);
+    return new Response('Plan ID is required to activate subscription', { status: 400 });
   }
 
   const plan = await kvService.getSubscriptionPlan(planId);
   if (!plan) {
-    throw new AppError('Subscription plan not found', 404);
+    return new Response('Subscription plan not found', { status: 404 });
   }
 
   const now = new Date();
