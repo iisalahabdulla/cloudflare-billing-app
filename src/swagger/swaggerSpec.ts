@@ -84,8 +84,7 @@ export const swaggerSpec = {
         '/customer': {
             get: {
                 summary: 'Get Customer Details',
-                parameters: [
-                ],
+                security: [{ bearerAuth: [] }],
                 responses: {
                     '200': {
                         description: 'Successful response',
@@ -100,6 +99,7 @@ export const swaggerSpec = {
             },
             post: {
                 summary: 'Update Customer',
+                security: [{ bearerAuth: [] }, { roles: ['admin'] }],
                 requestBody: {
                     required: true,
                     content: {
@@ -117,6 +117,7 @@ export const swaggerSpec = {
         '/customer/subscription': {
             get: {
                 summary: 'Get Customer Subscription Details',
+                security: [{ bearerAuth: [] }],
                 responses: {
                     '200': {
                         description: 'Successful response',
@@ -133,6 +134,7 @@ export const swaggerSpec = {
         '/plan': {
             get: {
                 summary: 'Get All Subscription Plans',
+                security: [{ bearerAuth: [] }],
                 parameters: [
                     {
                         name: "limit",
@@ -163,6 +165,7 @@ export const swaggerSpec = {
             },
             post: {
                 summary: 'Create Subscription Plan',
+                security: [{ bearerAuth: [] }, { roles: ['admin'] }],
                 requestBody: {
                     required: true,
                     content: {
@@ -180,6 +183,7 @@ export const swaggerSpec = {
         '/plan/{id}': {
             get: {
                 summary: 'Get Specific Subscription Plan',
+                security: [{ bearerAuth: [] }],
                 parameters: [
                     {
                         name: "id",
@@ -202,6 +206,7 @@ export const swaggerSpec = {
             },
             put: {
                 summary: 'Update Subscription Plan',
+                security: [{ bearerAuth: [] }, { roles: ['admin'] }],
                 parameters: [
                     {
                         name: 'id',
@@ -228,6 +233,7 @@ export const swaggerSpec = {
         '/subscription': {
             get: {
                 summary: 'Get Subscription',
+                security: [{ bearerAuth: [] }],
                 parameters: [
                     {
                         name: "limit",
@@ -256,6 +262,7 @@ export const swaggerSpec = {
             },
             post: {
                 summary: 'Create Subscription',
+                security: [{ bearerAuth: [] }],
                 parameters: [
                     {
                         name: 'planId',
@@ -271,6 +278,7 @@ export const swaggerSpec = {
             },
             put: {
                 summary: 'Update Subscription',
+                security: [{ bearerAuth: [] }],
                 parameters: [
                     {
                         name: 'planId',
@@ -287,6 +295,7 @@ export const swaggerSpec = {
             },
             delete: {
                 summary: 'Cancel Subscription',
+                security: [{ bearerAuth: [] }],
                 responses: {
                     '200': { description: 'Subscription cancelled successfully' },
                     '404': { description: 'Subscription not found' },
@@ -296,6 +305,7 @@ export const swaggerSpec = {
         '/invoice': {
             get: {
                 summary: 'Get Customer Invoices',
+                security: [{ bearerAuth: [] }],
                 parameters: [
                     {
                         name: "id",
@@ -334,6 +344,7 @@ export const swaggerSpec = {
         '/payment': {
             post: {
                 summary: 'Process Payment',
+                security: [{ bearerAuth: [] }],
                 parameters: [
                     {
                         name: 'invoiceId',
@@ -359,12 +370,14 @@ export const swaggerSpec = {
         '/billing': {
             get: {
                 summary: 'Run Billing Process',
+                security: [{ bearerAuth: [] }, { roles: ['admin'] }],
                 responses: {
                     '200': { description: 'Billing process completed successfully' },
                 },
             },
             post: {
                 summary: 'Generate Invoice',
+                security: [{ bearerAuth: [] }, { roles: ['admin'] }],
                 responses: {
                     '200': { description: 'Invoice generated successfully' },
                     '400': { description: 'Invalid input' },
@@ -385,6 +398,7 @@ export const swaggerSpec = {
                     subscription_status: { type: 'string', enum: ['active', 'inactive', 'pending', 'cancelled'] },
                     subscription_start_date: { type: 'string', format: 'date-time', nullable: true },
                     subscription_end_date: { type: 'string', format: 'date-time', nullable: true },
+                    roles: { type: 'array', items: { type: 'string' } },
                 },
             },
             CustomerInput: {

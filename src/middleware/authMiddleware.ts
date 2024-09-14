@@ -6,6 +6,7 @@ declare global {
   interface Request {
     customerId?: string;
     email?: string;
+    roles?: string[];
   }
 }
 
@@ -24,7 +25,8 @@ export async function authMiddleware(request: Request, env: Env): Promise<Respon
 
   console.log({ payload: JSON.stringify(payload) });
 
-  // Add customerId and email to the request
+  // Add customerId, email, and roles to the request
   request.customerId = payload.customerId;
   request.email = payload.email;
+  request.roles = payload.roles;
 }

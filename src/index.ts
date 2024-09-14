@@ -14,6 +14,7 @@ import { handleAuth } from './handlers/authHandler';
 import { authMiddleware } from './middleware/authMiddleware';
 import { KVNamespace, ScheduledEvent, ExecutionContext } from '@cloudflare/workers-types';
 import { Env } from './types/env';
+import { roleMiddleware } from './middleware/roleMiddleware';
 
 export default {
     async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -44,7 +45,15 @@ export default {
                     if (authResult instanceof Response) {
                         return authResult; // This is the 401 response
                     }
-                    
+
+                    // Apply role middleware for admin routes
+                    if (path.startsWith('admin')) {
+                        const roleResult = roleMiddleware(['admin'])(request, env);
+                        if (roleResult instanceof Response) {
+                            return roleResult; // This is the 403 response
+                        }
+                    }
+
                     switch (path) {
                         case 'subscription':
                             return handleSubscription(request, kvService);
