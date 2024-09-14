@@ -85,6 +85,14 @@ export const swaggerSpec = {
             get: {
                 summary: 'Get Customer Details',
                 security: [{ bearerAuth: [] }],
+                parameters: [
+                    {
+                        name: "customerId",
+                        in: "query",
+                        required: false,
+                        schema: { type: 'string' },
+                    },
+                ],
                 responses: {
                     '200': {
                         description: 'Successful response',

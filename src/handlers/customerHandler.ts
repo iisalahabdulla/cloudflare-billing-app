@@ -5,16 +5,18 @@ import { AppError, handleError } from '../utils/errorHandler';
 
 export async function handleCustomer(request: Request, kvService: KVService): Promise<Response> {
   try {
-    const customerId = request.customerId ?? "";
+    const url = new URL(request.url);
+    
+    const customerId = url.searchParams.get('customerId') ?? request.customerId ?? "";
 
     switch (request.method) {
       case 'GET':
-        if (request.url.includes('subscription')) {
+        if (url.searchParams.get('subscription')) {
           return handleGetSubscriptionDetails(customerId, kvService);
         }
-        return handleGetCustomer(customerId, kvService);
+        return handleGetCustomer(customerId, request, kvService);
       case 'POST':
-        if (request.url.includes('activate')) {
+        if (url.searchParams.get('activate')) {
           return handleActivateSubscription(customerId, request, kvService);
         }
         return handleCreateOrUpdateCustomer(customerId, request, kvService);
@@ -30,10 +32,14 @@ export async function handleCustomer(request: Request, kvService: KVService): Pr
   }
 }
 
-async function handleGetCustomer(customerId: string, kvService: KVService): Promise<Response> {
+async function handleGetCustomer(customerId: string, request: Request, kvService: KVService): Promise<Response> {
   const customer = await kvService.getCustomer(customerId);
   if (!customer) {
     throw new AppError('Customer not found', 404);
+  }
+
+  if (!request.roles?.includes('admin') && customerId !== request.customerId) {
+    throw new AppError('You are not authorized to view this customer', 403);
   }
 
   // Remove password from customer object before sending response
@@ -45,8 +51,11 @@ async function handleGetCustomer(customerId: string, kvService: KVService): Prom
 
 async function handleCreateOrUpdateCustomer(customerId: string, request: Request, kvService: KVService): Promise<Response> {
   try {
+    if (!request.roles?.includes('admin') && customerId !== request.customerId) {
+      throw new AppError('You are not authorized to create or update this customer', 403);
+    }
     const customerData: Customer = await request.json();
-    
+
     // Validate customer data
     if (!customerData.name || !customerData.email) {
       return new Response('Name and email are required', { status: 400 });
@@ -193,22 +202,22 @@ async function handleActivateSubscription(customerId: string, request: Request, 
   await kvService.setCustomer(customer);
 
   // Update billing cycle in BillingDO
-//   await billingDO.fetch(`/billing-cycle/${customerId}`, {
-//     method: 'POST',
-//     body: JSON.stringify({ startDate: now.toISOString(), endDate: endDate.toISOString() }),
-//   });
+  //   await billingDO.fetch(`/billing-cycle/${customerId}`, {
+  //     method: 'POST',
+  //     body: JSON.stringify({ startDate: now.toISOString(), endDate: endDate.toISOString() }),
+  //   });
 
   return new Response('Subscription activated successfully', { status: 200 });
 }
 
 async function handleListCustomers(request: Request, kvService: KVService): Promise<Response> {
-    const url = new URL(request.url);
-    const limit = parseInt(url.searchParams.get('limit') || '10');
-    const cursor = url.searchParams.get('cursor') || undefined;
+  const url = new URL(request.url);
+  const limit = parseInt(url.searchParams.get('limit') || '10');
+  const cursor = url.searchParams.get('cursor') || undefined;
 
-    const { customers, cursor: nextCursor } = await kvService.listCustomers(limit, cursor);
+  const { customers, cursor: nextCursor } = await kvService.listCustomers(limit, cursor);
 
-    return new Response(JSON.stringify({ customers, nextCursor }), {
-        headers: { 'Content-Type': 'application/json' },
-    });
+  return new Response(JSON.stringify({ customers, nextCursor }), {
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
