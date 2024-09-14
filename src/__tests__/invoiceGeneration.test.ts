@@ -71,12 +71,7 @@ describe('Invoice Generation', () => {
     mockKVNamespace.get.mockResolvedValueOnce(JSON.stringify(plan));
     mockKVNamespace.get.mockResolvedValueOnce(JSON.stringify(billingCycle));
 
-    const request = new Request('https://dummy-url/billing', {
-      method: 'POST',
-    });
-    request.customerId = customerId;
-
-    const response = await handleGenerateInvoice(request.customerId, kvService, emailService);
+    const response = await handleGenerateInvoice(customerId, kvService, emailService);
 
     expect(response.status).toBe(201);
     const responseBody = await response.json() as { id: string; customer_id: string; amount: number };
@@ -90,12 +85,7 @@ describe('Invoice Generation', () => {
     const customerId = 'nonexistent-customer';
     mockKVNamespace.get.mockResolvedValueOnce(null);
 
-    const request = new Request('https://dummy-url/billing', {
-      method: 'POST',
-    });
-    request.customerId = customerId;
-
-    const response = await handleGenerateInvoice(request.customerId, kvService, emailService);
+    const response = await handleGenerateInvoice(customerId, kvService, emailService);
 
     expect(response.status).toBe(404);
     expect(await response.text()).toBe('Customer not found');
@@ -116,12 +106,7 @@ describe('Invoice Generation', () => {
     mockKVNamespace.get.mockResolvedValueOnce(JSON.stringify(customer));
     mockKVNamespace.get.mockResolvedValueOnce(null);
 
-    const request = new Request('https://dummy-url/billing', {
-      method: 'POST',
-    });
-    request.customerId = customerId;
-
-    const response = await handleGenerateInvoice(request.customerId, kvService, emailService);
+    const response = await handleGenerateInvoice(customerId, kvService, emailService);
 
     expect(response.status).toBe(404);
     expect(await response.text()).toBe('Subscription plan not found');
@@ -153,12 +138,7 @@ describe('Invoice Generation', () => {
     mockKVNamespace.get.mockResolvedValueOnce(JSON.stringify(plan));
     mockKVNamespace.get.mockResolvedValueOnce(null);
 
-    const request = new Request('https://dummy-url/billing', {
-      method: 'POST',
-    });
-    request.customerId = customerId;
-
-    const response = await handleGenerateInvoice(request.customerId, kvService, emailService);
+    const response = await handleGenerateInvoice(customerId, kvService, emailService);
 
     expect(response.status).toBe(400);
     expect(await response.text()).toBe('Billing cycle data not found');

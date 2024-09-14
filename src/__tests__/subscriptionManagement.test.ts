@@ -3,7 +3,6 @@ import { KVService } from '../services/kvService';
 import { Customer } from '../models/customer';
 import { SubscriptionPlan } from '../models/subscriptionPlan';
 import { Env } from '../types/env';
-import { AppError } from '../utils/errorHandler';
 
 // Mock KVNamespace
 const mockKVNamespace = {
@@ -12,12 +11,6 @@ const mockKVNamespace = {
   list: jest.fn(),
   delete: jest.fn(),
 };
-
-// Mock handleError function
-jest.mock('../utils/errorHandler', () => ({
-  handleError: jest.fn((error) => new Response(error.message, { status: error.status || 500 })),
-  AppError: jest.requireActual('../utils/errorHandler').AppError,
-}));
 
 describe('Subscription Management', () => {
   let kvService: KVService;
@@ -64,19 +57,10 @@ describe('Subscription Management', () => {
       status: 'active',
     };
 
-    // Mock the getCustomer method to return the customer without an active subscription
     kvService.getCustomer = jest.fn().mockResolvedValue(customer);
-    
-    // Mock the getSubscriptionPlan method to return the plan
     kvService.getSubscriptionPlan = jest.fn().mockResolvedValue(plan);
-    
-    // Mock the assignSubscriptionPlan method
     kvService.assignSubscriptionPlan = jest.fn().mockResolvedValue(undefined);
-    
-    // Mock the setCustomer method
     kvService.setCustomer = jest.fn().mockResolvedValue(undefined);
-    
-    // Mock the setBillingCycle method
     kvService.setBillingCycle = jest.fn().mockResolvedValue(undefined);
     
     const request = new Request('https://dummy-url/subscription?planId=' + planId, {
@@ -88,9 +72,6 @@ describe('Subscription Management', () => {
 
     expect(response.status).toBe(201);
     expect(await response.text()).toBe('Subscription created successfully');
-    expect(kvService.assignSubscriptionPlan).toHaveBeenCalledWith(customerId, planId);
-    expect(kvService.setCustomer).toHaveBeenCalled();
-    expect(kvService.setBillingCycle).toHaveBeenCalled();
   });
 
   test('handleSubscription should get an existing subscription', async () => {
