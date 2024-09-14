@@ -35,7 +35,10 @@ async function handleGetCustomer(customerId: string, kvService: KVService): Prom
   if (!customer) {
     throw new AppError('Customer not found', 404);
   }
-  return new Response(JSON.stringify(customer), {
+
+  // Remove password from customer object before sending response
+  const { password, ...customerWithoutPassword } = customer;
+  return new Response(JSON.stringify(customerWithoutPassword), {
     headers: { 'Content-Type': 'application/json' },
   });
 }
