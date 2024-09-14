@@ -102,12 +102,13 @@ export const swaggerSpec = {
                             },
                         },
                     },
+                    '403': { description: 'Forbidden' },
                     '404': { description: 'Customer not found' },
                 },
             },
             post: {
-                summary: 'Update Customer',
-                security: [{ bearerAuth: [] }, { roles: ['admin'] }],
+                summary: 'Create or Update Customer',
+                security: [{ bearerAuth: [] }],
                 requestBody: {
                     required: true,
                     content: {
@@ -117,8 +118,106 @@ export const swaggerSpec = {
                     },
                 },
                 responses: {
-                    '200': { description: 'Customer updated successfully' },
+                    '200': { description: 'Customer created/updated successfully' },
                     '400': { description: 'Invalid input' },
+                    '403': { description: 'Forbidden' },
+                },
+            },
+            put: {
+                summary: 'Update Customer Subscription',
+                security: [{ bearerAuth: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    action: { type: 'string', enum: ['assign_plan', 'update_status'] },
+                                    planId: { type: 'string' },
+                                    status: { type: 'string', enum: ['active', 'inactive', 'pending', 'cancelled'] },
+                                },
+                                required: ['action'],
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    '200': { description: 'Subscription updated successfully' },
+                    '400': { description: 'Invalid input' },
+                },
+            },
+            patch: {
+                summary: 'Change Customer Plan',
+                security: [{ bearerAuth: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    newPlanId: { type: 'string' },
+                                },
+                                required: ['newPlanId'],
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    '200': { description: 'Plan changed successfully' },
+                    '400': { description: 'Invalid input' },
+                },
+            },
+        },
+        '/customer/subscription': {
+            get: {
+                summary: 'Get Customer Subscription Details',
+                security: [{ bearerAuth: [] }],
+                parameters: [
+                    {
+                        name: "customerId",
+                        in: "query",
+                        required: true,
+                        schema: { type: 'string' },
+                    },
+                ],
+                responses: {
+                    '200': {
+                        description: 'Successful response',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/SubscriptionDetails' },
+                            },
+                        },
+                    },
+                    '400': { description: 'Customer does not have an active subscription' },
+                    '404': { description: 'Customer or subscription plan not found' },
+                },
+            },
+        },
+        '/customer/activate': {
+            post: {
+                summary: 'Activate Customer Subscription',
+                security: [{ bearerAuth: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    planId: { type: 'string' },
+                                },
+                                required: ['planId'],
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    '200': { description: 'Subscription activated successfully' },
+                    '400': { description: 'Invalid input or subscription already active' },
+                    '404': { description: 'Customer or subscription plan not found' },
                 },
             },
         },
@@ -158,23 +257,6 @@ export const swaggerSpec = {
                             },
                         },
                     },
-                },
-            },
-        },
-        '/customer/subscription': {
-            get: {
-                summary: 'Get Customer Subscription Details',
-                security: [{ bearerAuth: [] }],
-                responses: {
-                    '200': {
-                        description: 'Successful response',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Subscription' },
-                            },
-                        },
-                    },
-                    '404': { description: 'Subscription not found' },
                 },
             },
         },
@@ -580,6 +662,31 @@ export const swaggerSpec = {
                     payment_method: { type: 'string', enum: ['credit_card', 'bank_transfer', 'paypal', 'other'] },
                     payment_date: { type: 'string', format: 'date-time' },
                     status: { type: 'string', enum: ['success', 'failed', 'pending'] },
+                },
+            },
+            SubscriptionDetails: {
+                type: 'object',
+                properties: {
+                    customer: {
+                        type: 'object',
+                        properties: {
+                            id: { type: 'string' },
+                            name: { type: 'string' },
+                            email: { type: 'string' },
+                        },
+                    },
+                    subscription: {
+                        type: 'object',
+                        properties: {
+                            plan_id: { type: 'string' },
+                            plan_name: { type: 'string' },
+                            status: { type: 'string' },
+                            billing_cycle: { type: 'string' },
+                            price: { type: 'number' },
+                            current_period_start: { type: 'string', format: 'date-time' },
+                            current_period_end: { type: 'string', format: 'date-time' },
+                        },
+                    },
                 },
             },
         },

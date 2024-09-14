@@ -8,6 +8,8 @@ export async function handlePayment(request: Request, kvService: KVService, emai
     const url = new URL(request.url);
     const invoiceId = url.searchParams.get('invoiceId');
     switch (request.method) {
+      case 'GET':
+        return await handleListPayments(request, kvService);
       case 'POST':
         if (!invoiceId) {
           throw new AppError('Invoice ID is required for payment', 400);

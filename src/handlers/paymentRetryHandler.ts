@@ -4,7 +4,7 @@ import { Payment } from '../models/payment';
 
 export async function handlePaymentRetry(kvService: KVService, emailService: EmailService): Promise<Response> {
   try {
-    const failedPayments = await kvService.listPayments('failed');
+    const { payments: failedPayments, cursor } = await kvService.listPayments('failed');
     const retriedPayments = await retryFailedPayments(failedPayments, kvService, emailService);
     return new Response(`Payment retry process completed. Retried ${retriedPayments} payments.`, { status: 200 });
   } catch (error) {

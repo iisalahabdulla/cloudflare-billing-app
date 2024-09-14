@@ -10,7 +10,6 @@
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
     "rootDir": "./src",
-    // "typeRoots": ["./node_modules/@types", "./src/types", "./node_modules/@cloudflare"]
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
