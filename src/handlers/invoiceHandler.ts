@@ -5,16 +5,15 @@ import { Invoice } from '../models/invoice';
 
 export async function handleInvoice(request: Request, kvService: KVService, emailService: EmailService): Promise<Response> {
   try {
-    const customerId = request.customerId ?? "";
     const url = new URL(request.url);
     const invoiceId = url.searchParams.get('invoiceId');
 
     switch (request.method) {
       case 'GET':
         if (invoiceId) {
-          return await handleGetInvoice(invoiceId, kvService);
+          return await handleGetInvoice(request, kvService);
         } else {
-          return await handleListCustomerInvoices(customerId, kvService);
+          return await handleListCustomerInvoices(request, kvService);
         }
       default:
         throw new AppError('Method not allowed', 405);
@@ -25,7 +24,12 @@ export async function handleInvoice(request: Request, kvService: KVService, emai
 }
 
 
-async function handleGetInvoice(invoiceId: string, kvService: KVService): Promise<Response> {
+async function handleGetInvoice(request: Request, kvService: KVService): Promise<Response> {
+  const url = new URL(request.url);
+  const invoiceId = url.searchParams.get('invoiceId');
+  if (!invoiceId) {
+    throw new AppError('Invoice ID is required', 400);
+  }
   const invoice = await kvService.getInvoice(invoiceId);
   if (!invoice) {
     throw new AppError('Invoice not found', 404);
@@ -35,8 +39,12 @@ async function handleGetInvoice(invoiceId: string, kvService: KVService): Promis
   });
 }
 
-async function handleListCustomerInvoices(customerId: string, kvService: KVService): Promise<Response> {
+async function handleListCustomerInvoices(request: Request, kvService: KVService): Promise<Response> {
   const url = new URL(request.url);
+  const customerId = request.customerId ?? "";
+  if (!customerId) {
+    throw new AppError('Customer ID is required', 400);
+  }
   const limit = parseInt(url.searchParams.get('limit') || '10');
   const offset = parseInt(url.searchParams.get('offset') || '0');
   const invoices = await kvService.listInvoices(customerId, limit, offset);
@@ -45,7 +53,7 @@ async function handleListCustomerInvoices(customerId: string, kvService: KVServi
   });
 }
 
-async function handleListAllInvoices(kvService: KVService): Promise<Response> {
+async function handleListAllInvoices(request: Request, kvService: KVService): Promise<Response> {
   const url = new URL(request.url);
   const limit = parseInt(url.searchParams.get('limit') || '10');
   const offset = parseInt(url.searchParams.get('offset') || '0');
