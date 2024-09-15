@@ -150,3 +150,74 @@ Please ensure you update tests as appropriate and adhere to the existing coding 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+
+## Using the App
+
+Follow these steps to test the basic functionality of the app:
+
+1. **Register a new customer**:
+   ```
+   POST /auth/register
+   {
+     "name": "John Doe",
+     "email": "john@example.com",
+     "password": "securepassword"
+   }
+   ```
+   This will return a JWT token. Save this token for future requests.
+
+2. **Add the token to your requests**:
+   For all subsequent requests, add the Authorization header:
+   ```
+   Authorization: Bearer <your_jwt_token>
+   ```
+
+3. **View customer data**:
+   ```
+   GET /customer
+   ```
+   This will return the details of the authenticated customer.
+
+4. **Create a subscription plan**:
+   ```
+   POST /plan
+   {
+     "name": "Basic Plan",
+     "description": "Basic features",
+     "price": 9.99,
+     "billing_cycle": "monthly",
+     "features": ["feature1", "feature2"],
+     "status": "active"
+   }
+   ```
+   Note the `id` of the created plan.
+
+5. **Subscribe to a plan**:
+   ```
+   POST /subscription?planId=<plan_id>
+   ```
+   Replace `<plan_id>` with the id of the plan you created.
+
+6. **Generate an invoice**:
+   ```
+   POST /billing
+   ```
+   This will generate an invoice for the current billing cycle.
+
+7. **Process a payment**:
+   First, get the invoice id:
+   ```
+   GET /invoice
+   ```
+   Then, process the payment:
+   ```
+   POST /payment
+   {
+     "invoice_id": "<invoice_id>",
+     "amount": 9.99,
+     "payment_method": "credit_card"
+   }
+   ```
+   Replace `<invoice_id>` with the id of the invoice you want to pay.
+
+These steps demonstrate the basic flow of the application. You can explore more endpoints and functionalities using the Swagger UI documentation available at `/api-docs`.
