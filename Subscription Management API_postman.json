@@ -1,569 +1,657 @@
 {
-    "info": {
-      "name": "Subscription Management API",
-      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-    },
-    "item": [
-      {
-        "name": "Authentication",
-        "item": [
-          {
-            "name": "Register",
-            "request": {
-              "method": "POST",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "url": {
-                "raw": "{{baseUrl}}/auth/register",
-                "host": ["{{baseUrl}}"],
-                "path": ["auth", "register"]
-              },
-              "body": {
-                "mode": "raw",
-                "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"securepassword\"\n}"
-              }
-            }
-          },
-          {
-            "name": "Login",
-            "request": {
-              "method": "POST",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "url": {
-                "raw": "{{baseUrl}}/auth/login",
-                "host": ["{{baseUrl}}"],
-                "path": ["auth", "login"]
-              },
-              "body": {
-                "mode": "raw",
-                "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"securepassword\"\n}"
-              }
-            }
-          }
-        ]
-      },
-      {
-        "name": "Customer",
-        "item": [
-          {
-            "name": "Get Customer Details",
-            "request": {
-              "method": "GET",
-              "header": [
-                {
-                  "key": "Authorization",
-                  "value": "Bearer {{token}}"
-                }
-              ],
-              "url": {
-                "raw": "{{baseUrl}}/customer",
-                "host": ["{{baseUrl}}"],
-                "path": ["customer"]
-              }
-            }
-          },
-          {
-            "name": "Create or Update Customer",
-            "request": {
-              "method": "POST",
-              "header": [
-                {
-                  "key": "Authorization",
-                  "value": "Bearer {{token}}"
-                },
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "url": {
-                "raw": "{{baseUrl}}/customer",
-                "host": ["{{baseUrl}}"],
-                "path": ["customer"]
-              },
-              "body": {
-                "mode": "raw",
-                "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\"\n}"
-              }
-            }
-          },
-          {
-            "name": "Update Customer Subscription",
-            "request": {
-              "method": "PUT",
-              "header": [
-                {
-                  "key": "Authorization",
-                  "value": "Bearer {{token}}"
-                },
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "url": {
-                "raw": "{{baseUrl}}/customer",
-                "host": ["{{baseUrl}}"],
-                "path": ["customer"]
-              },
-              "body": {
-                "mode": "raw",
-                "raw": "{\n  \"action\": \"assign_plan\",\n  \"planId\": \"plan_id_here\"\n}"
-              }
-            }
-          },
-          {
-            "name": "Change Customer Plan",
-            "request": {
-              "method": "PATCH",
-              "header": [
-                {
-                  "key": "Authorization",
-                  "value": "Bearer {{token}}"
-                },
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "url": {
-                "raw": "{{baseUrl}}/customer",
-                "host": ["{{baseUrl}}"],
-                "path": ["customer"]
-              },
-              "body": {
-                "mode": "raw",
-                "raw": "{\n  \"newPlanId\": \"new_plan_id_here\"\n}"
-              }
-            }
-          },
-          {
-            "name": "Get Customer Subscription Details",
-            "request": {
-              "method": "GET",
-              "header": [
-                {
-                  "key": "Authorization",
-                  "value": "Bearer {{token}}"
-                }
-              ],
-              "url": {
-                "raw": "{{baseUrl}}/customer/subscription?customerId={{customerId}}",
-                "host": ["{{baseUrl}}"],
-                "path": ["customer", "subscription"],
-                "query": [
-                  {
-                    "key": "customerId",
-                    "value": "{{customerId}}"
-                  }
-                ]
-              }
-            }
-          },
-          {
-            "name": "Activate Customer Subscription",
-            "request": {
-              "method": "POST",
-              "header": [
-                {
-                  "key": "Authorization",
-                  "value": "Bearer {{token}}"
-                },
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "url": {
-                "raw": "{{baseUrl}}/customer/activate",
-                "host": ["{{baseUrl}}"],
-                "path": ["customer", "activate"]
-              },
-              "body": {
-                "mode": "raw",
-                "raw": "{\n  \"planId\": \"plan_id_here\"\n}"
-              }
-            }
-          },
-          {
-            "name": "List Customers",
-            "request": {
-              "method": "GET",
-              "header": [
-                {
-                  "key": "Authorization",
-                  "value": "Bearer {{token}}"
-                }
-              ],
-              "url": {
-                "raw": "{{baseUrl}}/customer/list?limit=10&cursor=",
-                "host": ["{{baseUrl}}"],
-                "path": ["customer", "list"],
-                "query": [
-                  {
-                    "key": "limit",
-                    "value": "10"
-                  },
-                  {
-                    "key": "cursor",
-                    "value": ""
-                  }
-                ]
-              }
-            }
-          }
-        ]
-      },
-      {
-        "name": "Subscription Plan",
-        "item": [
-          {
-            "name": "Get All Subscription Plans",
-            "request": {
-              "method": "GET",
-              "header": [
-                {
-                  "key": "Authorization",
-                  "value": "Bearer {{token}}"
-                }
-              ],
-              "url": {
-                "raw": "{{baseUrl}}/plan?limit=10&cursor=",
-                "host": ["{{baseUrl}}"],
-                "path": ["plan"],
-                "query": [
-                  {
-                    "key": "limit",
-                    "value": "10"
-                  },
-                  {
-                    "key": "cursor",
-                    "value": ""
-                  }
-                ]
-              }
-            }
-          },
-          {
-            "name": "Create Subscription Plan",
-            "request": {
-              "method": "POST",
-              "header": [
-                {
-                  "key": "Authorization",
-                  "value": "Bearer {{token}}"
-                },
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "url": {
-                "raw": "{{baseUrl}}/plan",
-                "host": ["{{baseUrl}}"],
-                "path": ["plan"]
-              },
-              "body": {
-                "mode": "raw",
-                "raw": "{\n  \"name\": \"Basic Plan\",\n  \"description\": \"Basic features\",\n  \"price\": 9.99,\n  \"billing_cycle\": \"monthly\",\n  \"features\": [\"feature1\", \"feature2\"],\n  \"status\": \"active\"\n}"
-              }
-            }
-          },
-          {
-            "name": "Get Specific Subscription Plan",
-            "request": {
-              "method": "GET",
-              "header": [
-                {
-                  "key": "Authorization",
-                  "value": "Bearer {{token}}"
-                }
-              ],
-              "url": {
-                "raw": "{{baseUrl}}/plan/{{planId}}",
-                "host": ["{{baseUrl}}"],
-                "path": ["plan", "{{planId}}"]
-              }
-            }
-          },
-          {
-            "name": "Update Subscription Plan",
-            "request": {
-              "method": "PUT",
-              "header": [
-                {
-                  "key": "Authorization",
-                  "value": "Bearer {{token}}"
-                },
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "url": {
-                "raw": "{{baseUrl}}/plan/{{planId}}",
-                "host": ["{{baseUrl}}"],
-                "path": ["plan", "{{planId}}"]
-              },
-              "body": {
-                "mode": "raw",
-                "raw": "{\n  \"name\": \"Updated Plan Name\",\n  \"price\": 19.99\n}"
-              }
-            }
-          }
-        ]
-      },
-      {
-        "name": "Subscription",
-        "item": [
-          {
-            "name": "Get Subscription",
-            "request": {
-              "method": "GET",
-              "header": [
-                {
-                  "key": "Authorization",
-                  "value": "Bearer {{token}}"
-                }
-              ],
-              "url": {
-                "raw": "{{baseUrl}}/subscription",
-                "host": ["{{baseUrl}}"],
-                "path": ["subscription"]
-              }
-            }
-          },
-          {
-            "name": "Create Subscription",
-            "request": {
-              "method": "POST",
-              "header": [
-                {
-                  "key": "Authorization",
-                  "value": "Bearer {{token}}"
-                }
-              ],
-              "url": {
-                "raw": "{{baseUrl}}/subscription?planId={{planId}}",
-                "host": ["{{baseUrl}}"],
-                "path": ["subscription"],
-                "query": [
-                  {
-                    "key": "planId",
-                    "value": "{{planId}}"
-                  }
-                ]
-              }
-            }
-          },
-          {
-            "name": "Update Subscription",
-            "request": {
-              "method": "PUT",
-              "header": [
-                {
-                  "key": "Authorization",
-                  "value": "Bearer {{token}}"
-                }
-              ],
-              "url": {
-                "raw": "{{baseUrl}}/subscription?planId={{newPlanId}}",
-                "host": ["{{baseUrl}}"],
-                "path": ["subscription"],
-                "query": [
-                  {
-                    "key": "planId",
-                    "value": "{{newPlanId}}"
-                  }
-                ]
-              }
-            }
-          },
-          {
-            "name": "Cancel Subscription",
-            "request": {
-              "method": "DELETE",
-              "header": [
-                {
-                  "key": "Authorization",
-                  "value": "Bearer {{token}}"
-                }
-              ],
-              "url": {
-                "raw": "{{baseUrl}}/subscription",
-                "host": ["{{baseUrl}}"],
-                "path": ["subscription"]
-              }
-            }
-          }
-        ]
-      },
-      {
-        "name": "Invoice",
-        "item": [
-          {
-            "name": "Get Customer Invoices",
-            "request": {
-              "method": "GET",
-              "header": [
-                {
-                  "key": "Authorization",
-                  "value": "Bearer {{token}}"
-                }
-              ],
-              "url": {
-                "raw": "{{baseUrl}}/invoice?customerId={{customerId}}&limit=10&cursor=",
-                "host": ["{{baseUrl}}"],
-                "path": ["invoice"],
-                "query": [
-                  {
-                    "key": "customerId",
-                    "value": "{{customerId}}"
-                  },
-                  {
-                    "key": "limit",
-                    "value": "10"
-                  },
-                  {
-                    "key": "cursor",
-                    "value": ""
-                  }
-                ]
-              }
-            }
-          }
-        ]
-      },
-      {
-        "name": "Payment",
-        "item": [
-          {
-            "name": "List Payments",
-            "request": {
-              "method": "GET",
-              "header": [
-                {
-                  "key": "Authorization",
-                  "value": "Bearer {{token}}"
-                }
-              ],
-              "url": {
-                "raw": "{{baseUrl}}/payment?status=success&limit=10&cursor=",
-                "host": ["{{baseUrl}}"],
-                "path": ["payment"],
-                "query": [
-                  {
-                    "key": "status",
-                    "value": "success"
-                  },
-                  {
-                    "key": "limit",
-                    "value": "10"
-                  },
-                  {
-                    "key": "cursor",
-                    "value": ""
-                  }
-                ]
-              }
-            }
-          },
-          {
-            "name": "Process Payment",
-            "request": {
-              "method": "POST",
-              "header": [
-                {
-                  "key": "Authorization",
-                  "value": "Bearer {{token}}"
-                },
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "url": {
-                "raw": "{{baseUrl}}/payment?invoiceId={{invoiceId}}",
-                "host": ["{{baseUrl}}"],
-                "path": ["payment"]
-              },
-              "body": {
-                "mode": "raw",
-                "raw": "{\n  \"amount\": 9.99,\n  \"payment_method\": \"credit_card\",\n  \"invoice_id\": \"{{invoiceId}}\"\n}"
-              }
-            }
-          }
-        ]
-      },
-      {
-        "name": "Billing",
-        "item": [
-          {
-            "name": "Run Billing Process",
-            "request": {
-              "method": "GET",
-              "header": [
-                {
-                  "key": "Authorization",
-                  "value": "Bearer {{token}}"
-                }
-              ],
-              "url": {
-                "raw": "{{baseUrl}}/billing",
-                "host": ["{{baseUrl}}"],
-                "path": ["billing"]
-              }
-            }
-          },
-          {
-            "name": "Generate Invoice",
-            "request": {
-              "method": "POST",
-              "header": [
-                {
-                  "key": "Authorization",
-                  "value": "Bearer {{token}}"
-                }
-              ],
-              "url": {
-                "raw": "{{baseUrl}}/billing",
-                "host": ["{{baseUrl}}"],
-                "path": ["billing"]
-              }
-            }
-          }
-        ]
-      }
-    ],
-    "variable": [
-      {
-        "key": "baseUrl",
-        "value": "https://your-worker-subdomain.workers.dev"
-      },
-      {
-        "key": "token",
-        "value": "your_jwt_token_here"
-      },
-      {
-        "key": "customerId",
-        "value": "customer_id_here"
-      },
-      {
-        "key": "planId",
-        "value": "plan_id_here"
-      },
-      {
-        "key": "invoiceId",
-        "value": "invoice_id_here"
-      }
-    ]
-  }
+	"info": {
+		"_postman_id": "27585461-fb34-4858-b374-5d53b71edade",
+		"name": "Subscription Management API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "23605279",
+		"_collection_link": "https://restless-capsule-857664.postman.co/workspace/OumlaPay~1df3818d-1224-44a6-bf0c-d5e7cfba31cc/collection/23605279-27585461-fb34-4858-b374-5d53b71edade?action=share&source=collection_link&creator=23605279"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"securepassword\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"securepassword\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Customer",
+			"item": [
+				{
+					"name": "Get Customer Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/customer",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"customer"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create or Update Customer",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/customer",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"customer"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Customer Subscription",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"action\": \"assign_plan\",\n  \"planId\": \"plan_id_here\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/customer",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"customer"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Change Customer Plan",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"newPlanId\": \"new_plan_id_here\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/customer",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"customer"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Customer Subscription Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/customer/subscription?customerId={{customerId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"customer",
+								"subscription"
+							],
+							"query": [
+								{
+									"key": "customerId",
+									"value": "{{customerId}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Activate Customer Subscription",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"planId\": \"plan_id_here\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/customer/activate",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"customer",
+								"activate"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Customers",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/customer/list?limit=10&cursor=",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"customer",
+								"list"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "cursor",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Subscription Plan",
+			"item": [
+				{
+					"name": "Get All Subscription Plans",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/plan?limit=10&cursor=",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"plan"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "cursor",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Subscription Plan",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Basic Plan\",\n  \"description\": \"Basic features\",\n  \"price\": 9.99,\n  \"billing_cycle\": \"monthly\",\n  \"features\": [\"feature1\", \"feature2\"],\n  \"status\": \"active\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/plan",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"plan"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Subscription",
+			"item": [
+				{
+					"name": "Get Subscription",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/subscription",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"subscription"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Subscription",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/subscription?planId={{planId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"subscription"
+							],
+							"query": [
+								{
+									"key": "planId",
+									"value": "{{planId}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Subscription",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/subscription?planId={{newPlanId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"subscription"
+							],
+							"query": [
+								{
+									"key": "planId",
+									"value": "{{newPlanId}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel Subscription",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/subscription",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"subscription"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Invoice",
+			"item": [
+				{
+					"name": "Get Customer Invoices",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/invoice?customerId={{customerId}}&limit=10&cursor=",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"invoice"
+							],
+							"query": [
+								{
+									"key": "customerId",
+									"value": "{{customerId}}"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "cursor",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Payment",
+			"item": [
+				{
+					"name": "List Payments",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/payment?status=success&limit=10&cursor=",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"payment"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "success"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "cursor",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Process Payment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"amount\": 9.99,\n  \"payment_method\": \"credit_card\",\n  \"invoice_id\": \"{{invoiceId}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/payment",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"payment"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Billing",
+			"item": [
+				{
+					"name": "Run Billing Process",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/billing",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"billing"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Generate Invoice",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/billing",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"billing"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "https://your-worker-subdomain.workers.dev"
+		},
+		{
+			"key": "token",
+			"value": "your_jwt_token_here"
+		},
+		{
+			"key": "customerId",
+			"value": "customer_id_here"
+		},
+		{
+			"key": "planId",
+			"value": "plan_id_here"
+		},
+		{
+			"key": "invoiceId",
+			"value": "invoice_id_here"
+		}
+	]
+}
