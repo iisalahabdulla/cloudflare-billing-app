@@ -77,16 +77,32 @@ export class KVService {
         await this.namespaces.SUBSCRIPTIONS.delete(id);
     }
 
-    async listInvoices(customerId?: string, limit: number = 10, cursor?: string): Promise<{ invoices: Invoice[], cursor: string | undefined }> {
-        const list = await this.namespaces.INVOICES.list({ limit, cursor });
+    async listInvoices(request: Request, customerId: string, limit: number = 10, cursor?: string): Promise<{ invoices: Invoice[], cursor: string | undefined }> {
         const invoices: Invoice[] = [];
-        for (const key of list.keys) {
-            const invoice = await this.getInvoice(key.name);
-            if (invoice && (!customerId || invoice.customer_id === customerId)) {
-                invoices.push(invoice);
+        let currentCursor = cursor;
+
+        while (true) {
+            const list = await this.namespaces.INVOICES.list({ limit, cursor: currentCursor });
+
+            for (const key of list.keys) {
+                const invoice = await this.getInvoice(key.name);
+                if (invoice && (invoice.customer_id === customerId || request.roles?.includes('admin'))) {
+                    invoices.push(invoice);
+                    if (invoices.length >= limit) {
+                        return { invoices, cursor: list.list_complete ? undefined : list.cursor };
+                    }
+                }
+            }
+
+            if (list.list_complete) {
+                break;
+            } else {
+                currentCursor = list.cursor;
             }
         }
-        return { invoices, cursor: list.list_complete ? undefined : list.cursor };
+
+        // If we've exhausted all invoices without reaching the limit
+        return { invoices, cursor: undefined };
     }
 
     async listAllInvoices(limit: number = 10, cursor?: string): Promise<{ invoices: Invoice[], cursor: string | undefined }> {

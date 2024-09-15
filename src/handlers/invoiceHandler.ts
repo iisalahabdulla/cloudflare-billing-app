@@ -53,13 +53,13 @@ async function handleGetInvoice(request: Request, kvService: KVService): Promise
 
 async function handleListCustomerInvoices(request: Request, kvService: KVService): Promise<Response> {
   const url = new URL(request.url);
-  const customerId = request.customerId ?? "";
+  const customerId = url.searchParams.get('customerId') ?? request.customerId ?? "";
   if (!customerId) {
     return new Response('Customer ID is required', { status: 400 });
   }
   const limit = parseInt(url.searchParams.get('limit') || '10');
   const cursor = url.searchParams.get('cursor') || undefined;
-  const { invoices, cursor: nextCursor } = await kvService.listInvoices(customerId, limit, cursor);
+  const { invoices, cursor: nextCursor } = await kvService.listInvoices(request, customerId, limit, cursor);
   return new Response(JSON.stringify({ invoices, nextCursor }), {
     headers: { 'Content-Type': 'application/json' },
   });
@@ -69,7 +69,8 @@ async function handleListAllInvoices(request: Request, kvService: KVService): Pr
   const url = new URL(request.url);
   const limit = parseInt(url.searchParams.get('limit') || '10');
   const cursor = url.searchParams.get('cursor') || undefined;
-  const { invoices, cursor: nextCursor } = await kvService.listInvoices(undefined, limit, cursor);
+  const customerId = url.searchParams.get('customerId') ?? request.customerId ?? "";
+  const { invoices, cursor: nextCursor } = await kvService.listInvoices(request, customerId, limit, cursor);
   return new Response(JSON.stringify({ invoices, nextCursor }), {
     headers: { 'Content-Type': 'application/json' },
   });

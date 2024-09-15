@@ -4,7 +4,7 @@ import { Invoice } from '../models/invoice';
 
 export async function handlePaymentRetry(kvService: KVService, emailService: EmailService): Promise<void> {
     try {
-        const { invoices } = await kvService.listInvoices(undefined, 1000); // Fetch up to 1000 invoices
+        const { invoices } = await kvService.listAllInvoices();
         const overdueInvoices = invoices.filter(invoice => 
             invoice.payment_status === 'pending' && new Date(invoice.due_date) < new Date()
         );
